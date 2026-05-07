@@ -1,0 +1,16 @@
+# Build artifacts
+/wrapper/wrapper
+/wrapper/wrapper-*
+/dist/
+
+# Local Docker layer cache
+/.docker-cache/
+
+# Editor
+*.swp
+.DS_Store
+.idea/
+.vscode/
+
+# Per-release manifest renders (CI writes resolved digests here)
+/release/

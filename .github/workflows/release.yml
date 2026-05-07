@@ -1,0 +1,157 @@
+name: release
+
+# Builds + publishes the three plugin variants on tag push.
+# Tag format is plain semver: v0.1.0, v0.1.1, v1.0.0-rc1, etc.
+#
+# Each variant is built from the single Dockerfile via the
+# LLAMA_BASE build-arg. The pushed-image digest is read back from
+# the buildx output and spliced into the matching manifest's
+# artifact.digest before the manifests are attached to the GitHub
+# release. Operators downloading the manifests get a digest-pinned
+# image reference, not a moving tag.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # gh release create
+  packages: write   # ghcr.io push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+      - name: wrapper tests
+        working-directory: wrapper
+        run: |
+          go vet ./...
+          go test -race ./...
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - { name: cuda, base: ghcr.io/ggml-org/llama.cpp:server-cuda }
+          - { name: rocm, base: ghcr.io/ggml-org/llama.cpp:server-rocm }
+          - { name: cpu,  base: ghcr.io/ggml-org/llama.cpp:server }
+    outputs:
+      cuda_digest: ${{ steps.export.outputs.cuda_digest }}
+      rocm_digest: ${{ steps.export.outputs.rocm_digest }}
+      cpu_digest:  ${{ steps.export.outputs.cpu_digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push (${{ matrix.variant.name }})
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}-${{ matrix.variant.name }}
+          build-args: |
+            LLAMA_BASE=${{ matrix.variant.base }}
+          # buildx pushes a manifest list; the digest output here is
+          # the index digest, which is what we pin in the manifest.
+          provenance: false
+
+      - name: Export digest
+        id: export
+        run: |
+          echo "${{ matrix.variant.name }}_digest=${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.variant.name }}
+          path: /dev/null
+          if-no-files-found: ignore
+
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Render manifests with pinned digests
+        env:
+          CUDA_DIGEST: ${{ needs.publish.outputs.cuda_digest }}
+          ROCM_DIGEST: ${{ needs.publish.outputs.rocm_digest }}
+          CPU_DIGEST:  ${{ needs.publish.outputs.cpu_digest }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          for variant in cuda rocm cpu; do
+            src="smoothnas-plugin.yaml"
+            if [ "$variant" != "cuda" ]; then
+              src="smoothnas-plugin-${variant}.yaml"
+            fi
+            digest_var="$(echo $variant | tr a-z A-Z)_DIGEST"
+            digest="${!digest_var}"
+            out="release/$(basename $src)"
+            # Splice the digest into artifact.image: image@sha256:...
+            # The CI rewrites the bare-tag form the manifest carries
+            # in dev so installs against released artifacts always
+            # pin to a digest.
+            python3 - <<EOF
+          import re, sys
+          with open("$src") as f: m = f.read()
+          ref_re = re.compile(r'(image:\s*ghcr\.io/[^\n]+?)(\n|$)')
+          m2 = ref_re.sub(r'\1@${digest}\2', m, count=1)
+          with open("$out", "w") as f: f.write(m2)
+          EOF
+          done
+          ls -l release/
+
+      - name: Render index.json
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cat > release/index.json <<EOF
+          {
+            "plugin": "llama-cpp",
+            "version": "${VERSION}",
+            "variants": [
+              { "name": "cuda", "manifest": "smoothnas-plugin.yaml",      "profile": "gpu-nvidia" },
+              { "name": "rocm", "manifest": "smoothnas-plugin-rocm.yaml", "profile": "gpu-amd" },
+              { "name": "cpu",  "manifest": "smoothnas-plugin-cpu.yaml",  "profile": "none" }
+            ]
+          }
+          EOF
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/smoothnas-plugin.yaml
+            release/smoothnas-plugin-rocm.yaml
+            release/smoothnas-plugin-cpu.yaml
+            release/index.json
+          generate_release_notes: true

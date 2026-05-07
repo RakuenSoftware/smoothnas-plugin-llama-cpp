@@ -1,0 +1,83 @@
+# SmoothNAS plugin manifest for llama.cpp (CUDA variant — default).
+# For AMD ROCm or CPU-only hosts, use the matching sibling manifest:
+#   smoothnas-plugin-rocm.yaml   AMD ROCm
+#   smoothnas-plugin-cpu.yaml    CPU-only
+#
+# The release workflow rewrites artifact.digest at publish time so
+# the manifest distributed via GitHub releases pins to a real
+# uploaded image. The bare-tag form here is suitable for development
+# sideloads against an unreleased build.
+
+apiVersion: smoothnas.io/v1
+kind: Plugin
+
+metadata:
+  name: llama-cpp
+  version: 0.1.0
+  description: |
+    llama.cpp inference server with NVIDIA CUDA acceleration.
+    Models live on the NVME slot of an operator-chosen tier.
+    Bearer-injected auth — SmoothNAS injects a per-plugin token via
+    the nginx route; the wrapper image validates it before forwarding
+    requests to upstream llama-server.
+  vendor: smoothnas
+  homepage: https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp
+
+artifact:
+  type: oci-image
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cuda
+  # digest filled in by .github/workflows/release.yml at publish time.
+
+container:
+  command:
+    - "--model"
+    - "${MODEL_PATH}"
+    - "--n-gpu-layers"
+    - "${N_GPU_LAYERS}"
+    - "--ctx-size"
+    - "${CTX_SIZE}"
+  restartPolicy: unless-stopped
+
+volumes:
+  - name: models
+    mode: tier-bound
+    slot: NVME
+    minSize: 50G
+    bind: /models
+
+ports:
+  - name: http
+    port: 8080
+    protocol: tcp
+    expose: true
+
+ui:
+  embed:
+    path: /
+    auth: bearer-injected
+
+profiles:
+  - gpu-nvidia
+  - default-limits
+
+config:
+  - key: MODEL_PATH
+    type: string
+    default: /models/default.gguf
+    description: Model file (path inside the container; /models maps to the tier-bound volume).
+  - key: N_GPU_LAYERS
+    type: string
+    default: "999"
+    description: Number of model layers to offload to GPU. 999 = all (recommended for systems with enough VRAM).
+  - key: CTX_SIZE
+    type: string
+    default: "8192"
+    description: Context window in tokens. Larger context costs more VRAM at load.
+  - key: SMOOTHNAS_BEARER_EXPECTED
+    type: string
+    secret: true
+    description: |
+      Auto-populated by SmoothNAS to match the rotated bearer token.
+      Do not edit manually — tierd's "rotate token" flow keeps this
+      in sync. The wrapper checks every request's
+      Authorization header against this value.

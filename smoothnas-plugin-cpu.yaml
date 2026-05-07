@@ -1,0 +1,67 @@
+# SmoothNAS plugin manifest for llama.cpp (CPU-only variant).
+# No GPU profile; --n-gpu-layers defaults to 0.
+
+apiVersion: smoothnas.io/v1
+kind: Plugin
+
+metadata:
+  name: llama-cpp
+  version: 0.1.0
+  description: |
+    llama.cpp inference server, CPU only. For hosts without a GPU,
+    or for quick experiments before paying the GPU pull cost.
+  vendor: smoothnas
+  homepage: https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp
+
+artifact:
+  type: oci-image
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cpu
+
+container:
+  command:
+    - "--model"
+    - "${MODEL_PATH}"
+    - "--ctx-size"
+    - "${CTX_SIZE}"
+    - "--threads"
+    - "${THREADS}"
+  restartPolicy: unless-stopped
+
+volumes:
+  - name: models
+    mode: tier-bound
+    slot: SSD
+    minSize: 30G
+    bind: /models
+
+ports:
+  - name: http
+    port: 8080
+    protocol: tcp
+    expose: true
+
+ui:
+  embed:
+    path: /
+    auth: bearer-injected
+
+profiles:
+  - default-limits
+
+config:
+  - key: MODEL_PATH
+    type: string
+    default: /models/default.gguf
+    description: Model file (path inside the container).
+  - key: CTX_SIZE
+    type: string
+    default: "4096"
+    description: Context window in tokens. CPU mode favours smaller context.
+  - key: THREADS
+    type: string
+    default: "0"
+    description: CPU threads. 0 = let llama.cpp auto-detect.
+  - key: SMOOTHNAS_BEARER_EXPECTED
+    type: string
+    secret: true
+    description: Auto-populated by SmoothNAS; do not edit manually.
