@@ -10,9 +10,9 @@ Three published variants, one per accelerator:
 
 | Manifest | Image tag | Profile | Use when |
 |----------|-----------|---------|----------|
-| `smoothnas-plugin.yaml`        | `ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:VER-cuda` | `gpu-nvidia` | Host has an NVIDIA GPU |
-| `smoothnas-plugin-rocm.yaml`   | `ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:VER-rocm` | `gpu-amd`    | Host has an AMD GPU (ROCm) |
-| `smoothnas-plugin-cpu.yaml`    | `ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:VER-cpu`  | none         | No GPU, or quick experiments before paying the GPU pull cost |
+| `smoothnas-plugin.yaml`        | `ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:VER-cuda`   | `gpu-nvidia` | Host has an NVIDIA GPU |
+| `smoothnas-plugin-vulkan.yaml` | `ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:VER-vulkan` | `gpu-amd`    | Host has an AMD GPU. Uses Vulkan via `/dev/dri` — no ROCm runtime needed. |
+| `smoothnas-plugin-cpu.yaml`    | `ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:VER-cpu`    | none         | No GPU, or quick experiments before paying the GPU pull cost |
 
 Pick the matching manifest at install time in the SmoothNAS UI's plugin install wizard, or via `tierd-cli plugin install --tier <pool> <manifest.yaml>`.
 
@@ -59,7 +59,7 @@ To sideload a dev image into a SmoothNAS dev VM, edit the matching manifest's `a
 
 `.github/workflows/release.yml` runs on tag push (`v*`):
 
-1. Builds three image variants (CUDA / ROCm / CPU) via buildx + GHCR push
+1. Builds three image variants (CUDA / Vulkan / CPU) via buildx + GHCR push
 2. Resolves the pushed digests and rewrites `artifact.digest` in each manifest
 3. Creates a GitHub release attaching the three rewritten manifests
 4. Pushes a release-channel `index.json` so the SmoothNAS install wizard can offer the variants alphabetically

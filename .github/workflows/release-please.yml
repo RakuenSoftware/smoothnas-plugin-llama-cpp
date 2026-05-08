@@ -3,7 +3,7 @@ name: release-please
 # Bumps the version + opens (or updates) a "Release vX.Y.Z" PR every
 # time a conventional commit lands on main. Merging that PR creates
 # the v* tag, which fires release.yml to build + publish the three
-# variant images (cuda / rocm / cpu) and attach the digest-pinned
+# variant images (cuda / vulkan / cpu) and attach the digest-pinned
 # manifests to the GitHub release.
 
 on:

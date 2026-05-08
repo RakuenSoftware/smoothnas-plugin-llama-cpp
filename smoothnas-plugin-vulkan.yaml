@@ -1,5 +1,12 @@
-# SmoothNAS plugin manifest for llama.cpp (AMD ROCm variant).
+# SmoothNAS plugin manifest for llama.cpp (AMD Vulkan variant).
 # Same shape as smoothnas-plugin.yaml; only image + GPU profile change.
+#
+# Vulkan (not ROCm) is the AMD path: the upstream server-vulkan image
+# talks to the GPU through /dev/dri, which is the same device node the
+# gpu-amd profile already binds. ROCm would additionally require
+# /dev/kfd and a matching kernel/runtime version, which is fragile on
+# the SmoothNAS host kernel — Vulkan works on every AMD GPU with a
+# Mesa-supported driver out of the box.
 
 apiVersion: smoothnas.io/v1
 kind: Plugin
@@ -8,14 +15,14 @@ metadata:
   name: llama-cpp
   version: 0.1.0 # x-release-please-version
   description: |
-    llama.cpp inference server with AMD ROCm acceleration.
+    llama.cpp inference server with AMD Vulkan acceleration.
     Models live on the NVME slot of an operator-chosen tier.
   vendor: smoothnas
   homepage: https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp
 
 artifact:
   type: oci-image
-  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-rocm # x-release-please-version
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-vulkan # x-release-please-version
 
 container:
   command:
