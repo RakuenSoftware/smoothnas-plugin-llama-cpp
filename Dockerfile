@@ -1,7 +1,7 @@
 # SmoothNAS plugin: llama.cpp with bearer-auth wrapper.
 #
 # Builds three variants from one Dockerfile via LLAMA_BASE — CI's
-# release workflow renders three tags (cuda / rocm / cpu) by passing
+# release workflow renders three tags (cuda / vulkan / cpu) by passing
 # the matching upstream image tag.
 #
 # The wrapper is a tiny Go binary built in a separate stage so the

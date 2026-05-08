@@ -40,13 +40,13 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          - { name: cuda, base: ghcr.io/ggml-org/llama.cpp:server-cuda }
-          - { name: rocm, base: ghcr.io/ggml-org/llama.cpp:server-rocm }
-          - { name: cpu,  base: ghcr.io/ggml-org/llama.cpp:server }
+          - { name: cuda,   base: ghcr.io/ggml-org/llama.cpp:server-cuda }
+          - { name: vulkan, base: ghcr.io/ggml-org/llama.cpp:server-vulkan }
+          - { name: cpu,    base: ghcr.io/ggml-org/llama.cpp:server }
     outputs:
-      cuda_digest: ${{ steps.export.outputs.cuda_digest }}
-      rocm_digest: ${{ steps.export.outputs.rocm_digest }}
-      cpu_digest:  ${{ steps.export.outputs.cpu_digest }}
+      cuda_digest:   ${{ steps.export.outputs.cuda_digest }}
+      vulkan_digest: ${{ steps.export.outputs.vulkan_digest }}
+      cpu_digest:    ${{ steps.export.outputs.cpu_digest }}
     steps:
       - uses: actions/checkout@v4
 
@@ -109,13 +109,13 @@ jobs:
 
       - name: Render manifests with pinned digests
         env:
-          CUDA_DIGEST: ${{ needs.publish.outputs.cuda_digest }}
-          ROCM_DIGEST: ${{ needs.publish.outputs.rocm_digest }}
-          CPU_DIGEST:  ${{ needs.publish.outputs.cpu_digest }}
+          CUDA_DIGEST:   ${{ needs.publish.outputs.cuda_digest }}
+          VULKAN_DIGEST: ${{ needs.publish.outputs.vulkan_digest }}
+          CPU_DIGEST:    ${{ needs.publish.outputs.cpu_digest }}
         run: |
           set -euo pipefail
           mkdir -p release
-          for variant in cuda rocm cpu; do
+          for variant in cuda vulkan cpu; do
             src="smoothnas-plugin.yaml"
             if [ "$variant" != "cuda" ]; then
               src="smoothnas-plugin-${variant}.yaml"
@@ -146,9 +146,9 @@ jobs:
             "plugin": "llama-cpp",
             "version": "${VERSION}",
             "variants": [
-              { "name": "cuda", "manifest": "smoothnas-plugin.yaml",      "profile": "gpu-nvidia" },
-              { "name": "rocm", "manifest": "smoothnas-plugin-rocm.yaml", "profile": "gpu-amd" },
-              { "name": "cpu",  "manifest": "smoothnas-plugin-cpu.yaml",  "profile": "none" }
+              { "name": "cuda",   "manifest": "smoothnas-plugin.yaml",        "profile": "gpu-nvidia" },
+              { "name": "vulkan", "manifest": "smoothnas-plugin-vulkan.yaml", "profile": "gpu-amd" },
+              { "name": "cpu",    "manifest": "smoothnas-plugin-cpu.yaml",    "profile": "none" }
             ]
           }
           EOF
@@ -163,6 +163,6 @@ jobs:
         with:
           files: |
             release/smoothnas-plugin.yaml
-            release/smoothnas-plugin-rocm.yaml
+            release/smoothnas-plugin-vulkan.yaml
             release/smoothnas-plugin-cpu.yaml
             release/index.json

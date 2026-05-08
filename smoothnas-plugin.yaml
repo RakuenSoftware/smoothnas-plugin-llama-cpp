@@ -1,6 +1,6 @@
 # SmoothNAS plugin manifest for llama.cpp (CUDA variant — default).
-# For AMD ROCm or CPU-only hosts, use the matching sibling manifest:
-#   smoothnas-plugin-rocm.yaml   AMD ROCm
+# For AMD or CPU-only hosts, use the matching sibling manifest:
+#   smoothnas-plugin-vulkan.yaml AMD Vulkan
 #   smoothnas-plugin-cpu.yaml    CPU-only
 #
 # The release workflow rewrites artifact.digest at publish time so

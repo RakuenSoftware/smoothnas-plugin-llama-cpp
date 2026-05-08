@@ -7,7 +7,7 @@
       "package-name": "smoothnas-plugin-llama-cpp",
       "extra-files": [
         "smoothnas-plugin.yaml",
-        "smoothnas-plugin-rocm.yaml",
+        "smoothnas-plugin-vulkan.yaml",
         "smoothnas-plugin-cpu.yaml"
       ]
     }
