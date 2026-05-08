@@ -64,6 +64,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR rejects uppercase tags ("repository name must be lowercase").
+      # The org slug is `RakuenSoftware` in github.repository, so we
+      # lowercase the whole reference before passing it to buildx.
+      - name: Compute lowercase image ref
+        id: image
+        run: echo "ref=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]'):${{ steps.version.outputs.version }}-${{ matrix.variant.name }}" >> "$GITHUB_OUTPUT"
+
       - name: Build + push (${{ matrix.variant.name }})
         id: build
         uses: docker/build-push-action@v6
@@ -71,7 +78,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}-${{ matrix.variant.name }}
+            ${{ steps.image.outputs.ref }}
           build-args: |
             LLAMA_BASE=${{ matrix.variant.base }}
           # buildx pushes a manifest list; the digest output here is
