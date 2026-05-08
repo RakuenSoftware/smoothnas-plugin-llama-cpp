@@ -1,0 +1,25 @@
+name: release-please
+
+# Bumps the version + opens (or updates) a "Release vX.Y.Z" PR every
+# time a conventional commit lands on main. Merging that PR creates
+# the v* tag, which fires release.yml to build + publish the three
+# variant images (cuda / rocm / cpu) and attach the digest-pinned
+# manifests to the GitHub release.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
