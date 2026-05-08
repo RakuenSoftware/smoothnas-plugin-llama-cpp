@@ -6,7 +6,7 @@ kind: Plugin
 
 metadata:
   name: llama-cpp
-  version: 0.1.0
+  version: 0.1.0 # x-release-please-version
   description: |
     llama.cpp inference server with AMD ROCm acceleration.
     Models live on the NVME slot of an operator-chosen tier.
@@ -15,7 +15,7 @@ metadata:
 
 artifact:
   type: oci-image
-  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-rocm
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-rocm # x-release-please-version
 
 container:
   command:
