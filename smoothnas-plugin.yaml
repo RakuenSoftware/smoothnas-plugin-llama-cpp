@@ -13,7 +13,7 @@ kind: Plugin
 
 metadata:
   name: llama-cpp
-  version: 0.1.0
+  version: 0.1.0 # x-release-please-version
   description: |
     llama.cpp inference server with NVIDIA CUDA acceleration.
     Models live on the NVME slot of an operator-chosen tier.
@@ -25,7 +25,7 @@ metadata:
 
 artifact:
   type: oci-image
-  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cuda
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cuda # x-release-please-version
   # digest filled in by .github/workflows/release.yml at publish time.
 
 container:

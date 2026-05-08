@@ -6,7 +6,7 @@ kind: Plugin
 
 metadata:
   name: llama-cpp
-  version: 0.1.0
+  version: 0.1.0 # x-release-please-version
   description: |
     llama.cpp inference server, CPU only. For hosts without a GPU,
     or for quick experiments before paying the GPU pull cost.
@@ -15,7 +15,7 @@ metadata:
 
 artifact:
   type: oci-image
-  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cpu
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cpu # x-release-please-version
 
 container:
   command:
