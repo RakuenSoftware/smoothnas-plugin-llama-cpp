@@ -8,6 +8,10 @@
 # final image carries only the upstream layers + one statically-
 # linked binary.
 
+# Override LLAMA_BASE in the build args to pick a variant. Docker only
+# allows FROM to see ARG values declared before the stage starts.
+ARG LLAMA_BASE=ghcr.io/ggml-org/llama.cpp:server
+
 # --- wrapper build ---
 FROM golang:1.25-alpine AS wrapper-build
 WORKDIR /src
@@ -17,10 +21,9 @@ COPY wrapper/go.mod wrapper/main.go ./
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /smoothnas-wrapper .
 
 # --- final image ---
-# Override LLAMA_BASE in the build args to pick a variant. Pinned
-# tags are written into the manifests by the release workflow before
-# publishing, so operators always install a known-good combination.
-ARG LLAMA_BASE=ghcr.io/ggml-org/llama.cpp:server
+# Pinned tags are written into the manifests by the release workflow
+# before publishing, so operators always install a known-good
+# combination.
 FROM ${LLAMA_BASE}
 
 COPY --from=wrapper-build /smoothnas-wrapper /usr/local/bin/smoothnas-wrapper
