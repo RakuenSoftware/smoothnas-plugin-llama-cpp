@@ -15,7 +15,7 @@ metadata:
 
 artifact:
   type: oci-image
-  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cpu # x-release-please-version
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cpu
 
 container:
   command:
@@ -23,6 +23,8 @@ container:
     - "${MODEL_PATH}"
     - "--ctx-size"
     - "${CTX_SIZE}"
+    - "--parallel"
+    - "${PARALLEL_SLOTS}"
     - "--threads"
     - "${THREADS}"
   restartPolicy: unless-stopped
@@ -51,15 +53,31 @@ profiles:
 config:
   - key: MODEL_PATH
     type: string
-    default: /models/default.gguf
-    description: Model file (path inside the container).
+    label: Model GGUF path
+    default: /models/qwen3.6-27b-128k-q5.gguf
+    description: Model file (path inside the container). Default targets Qwen3.6 27B 128K Q5.
   - key: CTX_SIZE
-    type: string
-    default: "4096"
-    description: Context window in tokens. CPU mode favours smaller context.
+    type: number
+    label: Context window
+    default: "131072"
+    min: "1024"
+    step: "1024"
+    unit: tokens
+    description: Context window in tokens. 131072 selects the 128K Qwen context target; CPU mode may need a smaller value.
+  - key: PARALLEL_SLOTS
+    type: number
+    label: Request slots
+    default: "2"
+    min: "1"
+    max: "16"
+    step: "1"
+    description: llama.cpp parallel request slots passed to --parallel.
   - key: THREADS
-    type: string
+    type: number
+    label: CPU threads
     default: "0"
+    min: "0"
+    step: "1"
     description: CPU threads. 0 = let llama.cpp auto-detect.
   - key: SMOOTHNAS_BEARER_EXPECTED
     type: string

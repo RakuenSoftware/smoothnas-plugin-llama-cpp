@@ -35,9 +35,20 @@ In the SmoothNAS UI:
 
 1. **Install** → paste this manifest into the wizard, pick a tier with NVME slot capacity, install
 2. **Stage models** → copy GGUF files into `/mnt/<tier>/.plugins/llama-cpp/models/` over SMB / NFS / SCP
-3. **Configure** → set `MODEL_PATH` on the detail page (default `/models/default.gguf`)
+3. **Configure** → set `MODEL_PATH` on the detail page (default `/models/qwen3.6-27b-128k-q5.gguf`)
 4. **Start** → click Start; tierd pulls the wrapper image, creates the container, captures the bridge IP, writes the nginx route with the bearer token
 5. **Open** → click Open on the card; the llama.cpp UI renders inside the SmoothNAS chrome at `https://<smoothnas>/plugins/llama-cpp/`
+
+The default runtime profile is Qwen3.6 27B 128K Q5:
+
+- `MODEL_PATH=/models/qwen3.6-27b-128k-q5.gguf`
+- `CTX_SIZE=131072`
+- `PARALLEL_SLOTS=2`
+- `N_GPU_LAYERS=999` on CUDA/Vulkan manifests
+
+Quantization is selected by the GGUF file itself. To use a different
+quantization, stage that GGUF under the models volume and update
+`MODEL_PATH`; the default is intentionally Q5, not Q4.
 
 Uninstall via the UI's Danger Zone removes the container, the cached image, the nginx route, and **the model files** (per the parent doc's all-or-none policy). Back up `/mnt/<tier>/.plugins/llama-cpp/models/` first if you care.
 
