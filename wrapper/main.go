@@ -7,20 +7,20 @@
 //
 // Configuration:
 //
-//   SMOOTHNAS_BEARER_EXPECTED   The bearer token the wrapper accepts.
-//                                Must match the token tierd injects via
-//                                the nginx route. tierd's "rotate token"
-//                                flow updates this env var and restarts
-//                                the container.
+//	SMOOTHNAS_BEARER_EXPECTED   The bearer token the wrapper accepts.
+//	                             Must match the token tierd injects via
+//	                             the nginx route. tierd's "rotate token"
+//	                             flow updates this env var and restarts
+//	                             the container.
 //
-//   LLAMA_BIN                   Path to the upstream llama-server binary.
-//                                Default: /llama-server
+//	LLAMA_BIN                   Path to the upstream llama-server binary.
+//	                             Default: /app/llama-server
 //
-//   LLAMA_PORT                  Port the upstream llama-server listens on
-//                                (loopback only). Default: 8081.
+//	LLAMA_PORT                  Port the upstream llama-server listens on
+//	                             (loopback only). Default: 8081.
 //
-//   LISTEN_ADDR                 Address the wrapper itself binds. Default:
-//                                :8080. Matches the manifest's exposed port.
+//	LISTEN_ADDR                 Address the wrapper itself binds. Default:
+//	                             :8080. Matches the manifest's exposed port.
 //
 // Everything past the recognised wrapper flags is passed verbatim to
 // llama-server, so operators can supply --model / --n-gpu-layers / etc.
@@ -47,7 +47,7 @@ import (
 
 func main() {
 	listenAddr := envOr("LISTEN_ADDR", ":8080")
-	llamaBin := envOr("LLAMA_BIN", "/llama-server")
+	llamaBin := envOr("LLAMA_BIN", "/app/llama-server")
 	llamaPort := envOr("LLAMA_PORT", "8081")
 	expected := os.Getenv("SMOOTHNAS_BEARER_EXPECTED")
 	if expected == "" {
