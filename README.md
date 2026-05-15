@@ -22,7 +22,7 @@ Upstream `llama-server` has no built-in HTTP auth. SmoothNAS phase-7 injects a b
 
 This repo's `wrapper/` is a tiny Go binary (~150 LoC) that:
 
-1. Starts upstream `llama-server` as a child on `127.0.0.1:8081`
+1. Starts upstream `llama-server` (`/app/llama-server` in current upstream images) as a child on `127.0.0.1:8081`
 2. Listens on `:8080` (the port the SmoothNAS nginx route forwards to)
 3. Validates `Authorization: Bearer $SMOOTHNAS_BEARER_EXPECTED` on every request — constant-time compare, rejects with 401 on missing or wrong token
 4. Forwards valid requests to the child via `httputil.NewSingleHostReverseProxy` with streaming-friendly defaults (so SSE / token-by-token completions work)

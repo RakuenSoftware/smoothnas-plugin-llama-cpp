@@ -28,10 +28,10 @@ FROM ${LLAMA_BASE}
 
 COPY --from=wrapper-build /smoothnas-wrapper /usr/local/bin/smoothnas-wrapper
 
-# llama-server lives at /llama-server in the upstream image; the
+# llama-server lives at /app/llama-server in the upstream image; the
 # wrapper finds it via $LLAMA_BIN. Override at runtime if upstream
 # changes the path.
-ENV LLAMA_BIN=/llama-server
+ENV LLAMA_BIN=/app/llama-server
 ENV LLAMA_PORT=8081
 ENV LISTEN_ADDR=:8080
 
