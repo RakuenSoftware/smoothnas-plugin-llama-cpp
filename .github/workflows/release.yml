@@ -142,7 +142,7 @@ jobs:
               manifest = f.read()
 
           manifest = re.sub(
-              r'(?m)^(\s*version:\s*)[^\n#]+(\s*#.*)?$',
+              r'(?m)^(\s*version:\s*)[^\s#]+(\s*#.*)?$',
               rf'\g<1>{version}\2',
               manifest,
               count=1,
