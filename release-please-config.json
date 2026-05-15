@@ -6,9 +6,21 @@
     ".": {
       "package-name": "smoothnas-plugin-llama-cpp",
       "extra-files": [
-        "smoothnas-plugin.yaml",
-        "smoothnas-plugin-vulkan.yaml",
-        "smoothnas-plugin-cpu.yaml"
+        {
+          "type": "yaml",
+          "path": "smoothnas-plugin.yaml",
+          "jsonpath": "$.metadata.version"
+        },
+        {
+          "type": "yaml",
+          "path": "smoothnas-plugin-vulkan.yaml",
+          "jsonpath": "$.metadata.version"
+        },
+        {
+          "type": "yaml",
+          "path": "smoothnas-plugin-cpu.yaml",
+          "jsonpath": "$.metadata.version"
+        }
       ]
     }
   }

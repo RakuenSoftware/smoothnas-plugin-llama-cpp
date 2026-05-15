@@ -5,8 +5,8 @@ name: release
 #
 # Each variant is built from the single Dockerfile via the
 # LLAMA_BASE build-arg. The pushed-image digest is read back from
-# the buildx output and spliced into the matching manifest's
-# artifact.digest before the manifests are attached to the GitHub
+# buildx output and spliced into the matching manifest's
+# artifact.image before the manifests are attached to the GitHub
 # release. Operators downloading the manifests get a digest-pinned
 # image reference, not a moving tag.
 
@@ -43,10 +43,6 @@ jobs:
           - { name: cuda,   base: ghcr.io/ggml-org/llama.cpp:server-cuda }
           - { name: vulkan, base: ghcr.io/ggml-org/llama.cpp:server-vulkan }
           - { name: cpu,    base: ghcr.io/ggml-org/llama.cpp:server }
-    outputs:
-      cuda_digest:   ${{ steps.export.outputs.cuda_digest }}
-      vulkan_digest: ${{ steps.export.outputs.vulkan_digest }}
-      cpu_digest:    ${{ steps.export.outputs.cpu_digest }}
     steps:
       - uses: actions/checkout@v4
 
@@ -85,17 +81,21 @@ jobs:
           # the index digest, which is what we pin in the manifest.
           provenance: false
 
-      - name: Export digest
-        id: export
+      - name: Write digest
         run: |
-          echo "${{ matrix.variant.name }}_digest=${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          digest="${{ steps.build.outputs.digest }}"
+          if [ -z "$digest" ]; then
+            echo "buildx did not return an image digest" >&2
+            exit 1
+          fi
+          echo "$digest" > "digest-${{ matrix.variant.name }}.txt"
 
       - name: Upload digest artifact
         uses: actions/upload-artifact@v4
         with:
           name: digest-${{ matrix.variant.name }}
-          path: /dev/null
-          if-no-files-found: ignore
+          path: digest-${{ matrix.variant.name }}.txt
+          if-no-files-found: error
 
   release:
     needs: publish
@@ -107,32 +107,55 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Download pushed-image digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          merge-multiple: true
+
       - name: Render manifests with pinned digests
-        env:
-          CUDA_DIGEST:   ${{ needs.publish.outputs.cuda_digest }}
-          VULKAN_DIGEST: ${{ needs.publish.outputs.vulkan_digest }}
-          CPU_DIGEST:    ${{ needs.publish.outputs.cpu_digest }}
         run: |
           set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
           mkdir -p release
           for variant in cuda vulkan cpu; do
             src="smoothnas-plugin.yaml"
             if [ "$variant" != "cuda" ]; then
               src="smoothnas-plugin-${variant}.yaml"
             fi
-            digest_var="$(echo $variant | tr a-z A-Z)_DIGEST"
-            digest="${!digest_var}"
+            digest="$(cat "digest-${variant}.txt")"
+            if [ -z "$digest" ]; then
+              echo "missing digest for $variant" >&2
+              exit 1
+            fi
             out="release/$(basename $src)"
-            # Splice the digest into artifact.image: image@sha256:...
-            # The CI rewrites the bare-tag form the manifest carries
-            # in dev so installs against released artifacts always
-            # pin to a digest.
-            python3 - <<EOF
-          import re, sys
-          with open("$src") as f: m = f.read()
-          ref_re = re.compile(r'(image:\s*ghcr\.io/[^\n]+?)(\n|$)')
-          m2 = ref_re.sub(r'\1@${digest}\2', m, count=1)
-          with open("$out", "w") as f: f.write(m2)
+            image="ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:${version}-${variant}@${digest}"
+            # Release manifests are the installable artifacts: set the
+            # manifest version and pin the image to the exact digest that
+            # buildx just pushed, while preserving the variant tag.
+            python3 - "$src" "$out" "$version" "$image" <<'EOF'
+          import re
+          import sys
+
+          src, out, version, image = sys.argv[1:]
+          with open(src, encoding="utf-8") as f:
+              manifest = f.read()
+
+          manifest = re.sub(
+              r'(?m)^(\s*version:\s*)[^\n#]+(\s*#.*)?$',
+              rf'\g<1>{version}\2',
+              manifest,
+              count=1,
+          )
+          manifest = re.sub(
+              r'(?m)^(\s*image:\s*)ghcr\.io/rakuensoftware/smoothnas-plugin-llama-cpp:[^\s#]+(?:@sha256:[0-9a-f]+)?(\s*#.*)?$',
+              rf'\g<1>{image}\2',
+              manifest,
+              count=1,
+          )
+
+          with open(out, "w", encoding="utf-8") as f:
+              f.write(manifest)
           EOF
           done
           ls -l release/

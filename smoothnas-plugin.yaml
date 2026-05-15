@@ -25,7 +25,7 @@ metadata:
 
 artifact:
   type: oci-image
-  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cuda # x-release-please-version
+  image: ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:0.1.0-cuda
   # digest filled in by .github/workflows/release.yml at publish time.
 
 container:
@@ -36,6 +36,8 @@ container:
     - "${N_GPU_LAYERS}"
     - "--ctx-size"
     - "${CTX_SIZE}"
+    - "--parallel"
+    - "${PARALLEL_SLOTS}"
   restartPolicy: unless-stopped
 
 volumes:
@@ -63,16 +65,32 @@ profiles:
 config:
   - key: MODEL_PATH
     type: string
-    default: /models/default.gguf
-    description: Model file (path inside the container; /models maps to the tier-bound volume).
+    label: Model GGUF path
+    default: /models/qwen3.6-27b-128k-q5.gguf
+    description: Model file (path inside the container; /models maps to the tier-bound volume). Default targets Qwen3.6 27B 128K Q5.
   - key: N_GPU_LAYERS
-    type: string
+    type: number
+    label: GPU layers
     default: "999"
+    min: "0"
+    step: "1"
     description: Number of model layers to offload to GPU. 999 = all (recommended for systems with enough VRAM).
   - key: CTX_SIZE
-    type: string
-    default: "8192"
-    description: Context window in tokens. Larger context costs more VRAM at load.
+    type: number
+    label: Context window
+    default: "131072"
+    min: "1024"
+    step: "1024"
+    unit: tokens
+    description: Context window in tokens. 131072 selects the 128K Qwen context target and costs more VRAM at load.
+  - key: PARALLEL_SLOTS
+    type: number
+    label: Request slots
+    default: "2"
+    min: "1"
+    max: "16"
+    step: "1"
+    description: llama.cpp parallel request slots passed to --parallel.
   - key: SMOOTHNAS_BEARER_EXPECTED
     type: string
     secret: true
