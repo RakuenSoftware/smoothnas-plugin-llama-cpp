@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -120,6 +121,74 @@ func TestEnvOr(t *testing.T) {
 	t.Setenv("WRAPPER_TEST_KEY", "explicit")
 	if got := envOr("WRAPPER_TEST_KEY", "fallback"); got != "explicit" {
 		t.Errorf("got %q, want explicit", got)
+	}
+}
+
+func TestBuildLlamaArgs_SpeculativeModeDisabled(t *testing.T) {
+	env := map[string]string{
+		"SPECULATIVE_MODE":      "none",
+		"SPEC_DRAFT_MODEL_PATH": "/models/mtp.gguf",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf"}, mapEnv(env))
+	want := []string{"--host", "127.0.0.1", "--port", "8081", "--model", "/models/main.gguf"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_DraftMTP(t *testing.T) {
+	env := map[string]string{
+		"SPECULATIVE_MODE":          "draft-mtp",
+		"SPEC_DRAFT_MODEL_PATH":     "/models/mtp.gguf",
+		"SPEC_DRAFT_MAX_TOKENS":     "8",
+		"SPEC_DRAFT_MIN_TOKENS":     "1",
+		"SPEC_DRAFT_P_MIN":          "0.60",
+		"SPEC_DRAFT_P_SPLIT":        "0.10",
+		"SPEC_DRAFT_CACHE_TYPE_K":   "q8_0",
+		"SPEC_DRAFT_CACHE_TYPE_V":   "q8_0",
+		"SPEC_DRAFT_GPU_LAYERS":     "999",
+		"SPEC_DRAFT_CPU_MOE_LAYERS": "0",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+		"--spec-type", "draft-mtp",
+		"--model-draft", "/models/mtp.gguf",
+		"--spec-draft-n-max", "8",
+		"--spec-draft-n-min", "1",
+		"--spec-draft-p-min", "0.60",
+		"--spec-draft-p-split", "0.10",
+		"--cache-type-k-draft", "q8_0",
+		"--cache-type-v-draft", "q8_0",
+		"--n-gpu-layers-draft", "999",
+		"--n-cpu-moe-draft", "0",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_DraftMTPOmitsEmptyDraftModel(t *testing.T) {
+	env := map[string]string{
+		"SPECULATIVE_MODE":      "draft-mtp",
+		"SPEC_DRAFT_MODEL_PATH": "   ",
+		"SPEC_DRAFT_MAX_TOKENS": "4",
+	}
+	got := buildLlamaArgs("8081", nil, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--spec-type", "draft-mtp",
+		"--spec-draft-n-max", "4",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func mapEnv(values map[string]string) envGetter {
+	return func(key string) string {
+		return values[key]
 	}
 }
 

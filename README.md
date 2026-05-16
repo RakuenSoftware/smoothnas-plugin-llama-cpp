@@ -50,10 +50,21 @@ The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with Q8 KV cache:
 - `LLAMA_ARG_CACHE_TYPE_V=q8_0`
 - `LLAMA_ARG_FLASH_ATTN=on`
 - `LLAMA_ARG_N_CPU_MOE=10` on CUDA/Vulkan manifests
+- `SPECULATIVE_MODE=none`
 
 Quantization is selected by the GGUF file itself. To use a different
 quantization, stage that GGUF under the models volume and update
 `MODEL_PATH`; the default is intentionally Q5_K_M, not Q4.
+
+The manifests expose llama.cpp's MTP/speculative decoding controls in
+the plugin config UI. Leave `SPECULATIVE_MODE=none` for normal startup.
+Set `SPECULATIVE_MODE=draft-mtp` only when the bundled llama.cpp build
+and selected GGUF support MTP. `SPEC_DRAFT_MODEL_PATH` is optional; use
+it for a separate draft GGUF, and leave it empty when the target GGUF
+contains its own MTP draft tensors. The UI also exposes draft token
+limits, draft probability thresholds, and draft KV cache types; CUDA and
+Vulkan variants additionally expose draft GPU layers and draft CPU MoE
+placement.
 
 For normal coding/completions against Qwen thinking models, pass
 `"chat_template_kwargs":{"enable_thinking":false}` per request when

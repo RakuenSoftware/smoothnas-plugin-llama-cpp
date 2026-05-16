@@ -124,6 +124,81 @@ config:
       - value: q5_0
       - value: q4_0
     description: KV cache V quantization. Q8 preserves quality.
+  - key: SPECULATIVE_MODE
+    type: select
+    label: Speculative decoding
+    default: none
+    options:
+      - value: none
+      - value: draft-mtp
+    description: Enables llama.cpp speculative decoding. Use draft-mtp only with a llama.cpp build and Qwen GGUF that support MTP.
+  - key: SPEC_DRAFT_MODEL_PATH
+    type: string
+    label: Draft/MTP GGUF path
+    default: ""
+    description: Optional draft/MTP model path inside the container. Leave empty when the target GGUF includes its own MTP draft tensors.
+  - key: SPEC_DRAFT_MAX_TOKENS
+    type: number
+    label: Draft max tokens
+    default: "16"
+    min: "1"
+    step: "1"
+    description: Maximum number of draft tokens proposed during speculative decoding.
+  - key: SPEC_DRAFT_MIN_TOKENS
+    type: number
+    label: Draft min tokens
+    default: "0"
+    min: "0"
+    step: "1"
+    description: Minimum number of draft tokens used during speculative decoding.
+  - key: SPEC_DRAFT_P_MIN
+    type: number
+    label: Draft probability floor
+    default: "0.75"
+    min: "0"
+    max: "1"
+    step: "0.01"
+    description: Minimum speculative decoding probability passed to --spec-draft-p-min.
+  - key: SPEC_DRAFT_P_SPLIT
+    type: number
+    label: Draft split probability
+    default: "0.10"
+    min: "0"
+    max: "1"
+    step: "0.01"
+    description: Speculative decoding split probability passed to --spec-draft-p-split.
+  - key: SPEC_DRAFT_CACHE_TYPE_K
+    type: select
+    label: Draft K cache type
+    default: q8_0
+    options:
+      - value: q8_0
+      - value: q5_0
+      - value: q4_0
+    description: KV cache K quantization for the draft/MTP model.
+  - key: SPEC_DRAFT_CACHE_TYPE_V
+    type: select
+    label: Draft V cache type
+    default: q8_0
+    options:
+      - value: q8_0
+      - value: q5_0
+      - value: q4_0
+    description: KV cache V quantization for the draft/MTP model.
+  - key: SPEC_DRAFT_GPU_LAYERS
+    type: number
+    label: Draft GPU layers
+    default: "999"
+    min: "0"
+    step: "1"
+    description: Number of draft/MTP model layers to offload to GPU. 999 = all.
+  - key: SPEC_DRAFT_CPU_MOE_LAYERS
+    type: number
+    label: Draft CPU MoE layers
+    default: "0"
+    min: "0"
+    step: "1"
+    description: Number of draft model MoE layers left on CPU/system RAM.
   - key: LLAMA_ARG_N_CPU_MOE
     type: number
     label: CPU MoE layers
