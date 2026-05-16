@@ -22,6 +22,14 @@
 //	LISTEN_ADDR                 Address the wrapper itself binds. Default:
 //	                             :8080. Matches the manifest's exposed port.
 //
+//	SPECULATIVE_MODE            llama.cpp speculative decoding mode. "none"
+//	                             disables wrapper-managed speculative flags.
+//	                             "draft-mtp" enables MTP decoding.
+//
+//	SPEC_DRAFT_MODEL_PATH       Optional draft/MTP GGUF path inside the
+//	                             container. Empty means no separate draft
+//	                             model flag is passed.
+//
 // Everything past the recognised wrapper flags is passed verbatim to
 // llama-server, so operators can supply --model / --n-gpu-layers / etc.
 // from the manifest's container.command.
@@ -54,9 +62,7 @@ func main() {
 		log.Fatal("SMOOTHNAS_BEARER_EXPECTED is empty; refusing to start without auth")
 	}
 
-	// Pass everything else through to llama-server. We don't actually
-	// parse the args; we forward them verbatim.
-	llamaArgs := append([]string{"--host", "127.0.0.1", "--port", llamaPort}, os.Args[1:]...)
+	llamaArgs := buildLlamaArgs(llamaPort, os.Args[1:], os.Getenv)
 
 	// Spawn upstream llama-server. SIGTERM/SIGINT to the wrapper
 	// propagates: we catch it, signal the child, wait briefly, exit.
@@ -180,4 +186,38 @@ func envOr(k, def string) string {
 		return v
 	}
 	return def
+}
+
+type envGetter func(string) string
+
+func buildLlamaArgs(llamaPort string, passthrough []string, getenv envGetter) []string {
+	args := append([]string{"--host", "127.0.0.1", "--port", llamaPort}, passthrough...)
+	args = append(args, speculativeArgs(getenv)...)
+	return args
+}
+
+func speculativeArgs(getenv envGetter) []string {
+	mode := strings.TrimSpace(getenv("SPECULATIVE_MODE"))
+	if mode == "" || mode == "none" {
+		return nil
+	}
+
+	args := []string{"--spec-type", mode}
+	appendIfSet := func(envKey, flag string) {
+		if v := strings.TrimSpace(getenv(envKey)); v != "" {
+			args = append(args, flag, v)
+		}
+	}
+
+	appendIfSet("SPEC_DRAFT_MODEL_PATH", "--model-draft")
+	appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--spec-draft-n-max")
+	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--spec-draft-n-min")
+	appendIfSet("SPEC_DRAFT_P_MIN", "--spec-draft-p-min")
+	appendIfSet("SPEC_DRAFT_P_SPLIT", "--spec-draft-p-split")
+	appendIfSet("SPEC_DRAFT_CACHE_TYPE_K", "--cache-type-k-draft")
+	appendIfSet("SPEC_DRAFT_CACHE_TYPE_V", "--cache-type-v-draft")
+	appendIfSet("SPEC_DRAFT_GPU_LAYERS", "--n-gpu-layers-draft")
+	appendIfSet("SPEC_DRAFT_CPU_MOE_LAYERS", "--n-cpu-moe-draft")
+
+	return args
 }
