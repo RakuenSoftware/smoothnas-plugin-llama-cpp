@@ -62,6 +62,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -80,12 +81,24 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	modelPath, err := ensureModel(ctx, os.Getenv, http.DefaultClient)
+	state := newStartupState()
+	srv := &http.Server{
+		Addr:              listenAddr,
+		Handler:           authHandler(expected, state),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	serverDone := make(chan error, 1)
+	go func() { serverDone <- srv.ListenAndServe() }()
+	log.Printf("wrapper listening on %s; bearer auth required", listenAddr)
+
+	modelPath, err := ensureModelWithProgress(ctx, os.Getenv, http.DefaultClient, state.setDownloadProgress)
 	if err != nil {
 		log.Printf("prepare model: %v", err)
-		runModelErrorServer(ctx, listenAddr, expected, err)
+		state.setError(err)
+		waitForServerExit(ctx, srv, serverDone)
 		return
 	}
+	state.setPhase("Starting llama.cpp", "Model downloaded. Starting llama.cpp server.", 0, 0)
 	llamaArgs := buildLlamaArgs(llamaPort, os.Args[1:], os.Getenv)
 	llamaArgs = appendModelArgIfMissing(llamaArgs, modelPath)
 
@@ -122,19 +135,7 @@ func main() {
 		log.Printf("proxy error %s %s: %v", r.Method, r.URL.Path, err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 	}
-
-	srv := &http.Server{
-		Addr:              listenAddr,
-		Handler:           authHandler(expected, proxy),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-
-	// Run the server in a goroutine; main goroutine waits on either
-	// the upstream child exiting (we should die too) or the context
-	// being cancelled (SIGTERM/SIGINT — we shut down cleanly).
-	serverDone := make(chan error, 1)
-	go func() { serverDone <- srv.ListenAndServe() }()
-	log.Printf("wrapper listening on %s; bearer auth required", listenAddr)
+	state.setReady(proxy)
 
 	childDone := make(chan error, 1)
 	go func() { childDone <- cmd.Wait() }()
@@ -157,17 +158,7 @@ func main() {
 	}
 }
 
-func runModelErrorServer(ctx context.Context, listenAddr, expected string, prepareErr error) {
-	srv := &http.Server{
-		Addr:              listenAddr,
-		Handler:           authHandler(expected, modelErrorHandler(prepareErr)),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-
-	serverDone := make(chan error, 1)
-	go func() { serverDone <- srv.ListenAndServe() }()
-	log.Printf("wrapper listening on %s; model configuration error visible over HTTP", listenAddr)
-
+func waitForServerExit(ctx context.Context, srv *http.Server, serverDone <-chan error) {
 	select {
 	case <-ctx.Done():
 		log.Printf("signal received; shutting down")
@@ -180,11 +171,134 @@ func runModelErrorServer(ctx context.Context, listenAddr, expected string, prepa
 	_ = srv.Shutdown(shutdownCtx)
 }
 
+type startupState struct {
+	mu      sync.RWMutex
+	phase   string
+	message string
+	written int64
+	total   int64
+	err     error
+	ready   http.Handler
+}
+
+type startupSnapshot struct {
+	phase   string
+	message string
+	written int64
+	total   int64
+	err     error
+	ready   http.Handler
+}
+
+func newStartupState() *startupState {
+	return &startupState{
+		phase:   "Preparing model",
+		message: "Preparing configured model.",
+	}
+}
+
+func (s *startupState) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	snap := s.snapshot()
+	if snap.ready != nil {
+		snap.ready.ServeHTTP(w, r)
+		return
+	}
+	if snap.err != nil {
+		modelErrorHandler(snap.err).ServeHTTP(w, r)
+		return
+	}
+	modelProgressHandler(snap).ServeHTTP(w, r)
+}
+
+func (s *startupState) setPhase(phase, message string, written, total int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.phase = phase
+	s.message = message
+	s.written = written
+	s.total = total
+}
+
+func (s *startupState) setDownloadProgress(written, total int64) {
+	s.setPhase("Downloading model", modelDownloadMessage(written, total), written, total)
+}
+
+func (s *startupState) setError(err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.err = err
+	s.ready = nil
+}
+
+func (s *startupState) setReady(handler http.Handler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ready = handler
+	s.err = nil
+}
+
+func (s *startupState) snapshot() startupSnapshot {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return startupSnapshot{
+		phase:   s.phase,
+		message: s.message,
+		written: s.written,
+		total:   s.total,
+		err:     s.err,
+		ready:   s.ready,
+	}
+}
+
+func modelProgressHandler(snap startupSnapshot) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if wantsJSON(r) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = fmt.Fprintf(w, `{"status":"preparing","phase":%q,"message":%q,"writtenBytes":%d,"totalBytes":%d}`+"\n",
+				snap.phase, snap.message, snap.written, snap.total)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="5">
+  <title>llama.cpp starting</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #202124; background: #f7f7f5; }
+    main { max-width: 720px; margin: 10vh auto; padding: 32px; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+    h1 { margin: 0 0 12px; font-size: 24px; }
+    p { line-height: 1.5; }
+    progress { width: 100%%; height: 18px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>%s</h1>
+  <p>%s</p>
+  %s
+</main>
+</body>
+</html>
+`, htmlEscape(snap.phase), htmlEscape(snap.message), progressElement(snap))
+	})
+}
+
+func wantsJSON(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "application/json") || strings.HasPrefix(r.URL.Path, "/v1/")
+}
+
 func modelErrorHandler(prepareErr error) http.Handler {
 	message := modelErrorMessage(prepareErr)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		if strings.Contains(r.Header.Get("Accept"), "application/json") || strings.HasPrefix(r.URL.Path, "/v1/") {
+		if wantsJSON(r) {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = fmt.Fprintf(w, `{"error":{"message":%q,"type":"model_configuration_error"}}`+"\n", message)
@@ -223,6 +337,31 @@ func modelErrorMessage(prepareErr error) string {
 		return "The configured model could not be prepared."
 	}
 	return "The configured MODEL_URL could not be prepared: " + prepareErr.Error()
+}
+
+func modelDownloadMessage(written, total int64) string {
+	if total > 0 {
+		percent := (float64(written) / float64(total)) * 100
+		if percent > 100 {
+			percent = 100
+		}
+		return fmt.Sprintf("Downloading model %.1f / %.1f GiB (%.0f%%).", gib(written), gib(total), percent)
+	}
+	if written > 0 {
+		return fmt.Sprintf("Downloading model %.1f GiB.", gib(written))
+	}
+	return "Downloading model."
+}
+
+func progressElement(snap startupSnapshot) string {
+	if snap.total > 0 {
+		value := snap.written
+		if value > snap.total {
+			value = snap.total
+		}
+		return fmt.Sprintf(`<progress value="%d" max="%d"></progress>`, value, snap.total)
+	}
+	return `<progress></progress>`
 }
 
 func htmlEscape(s string) string {
@@ -288,10 +427,15 @@ func envOr(k, def string) string {
 }
 
 type envGetter func(string) string
+type progressFunc func(written, total int64)
 
 const defaultModelPath = "/models/model.gguf"
 
 func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (string, error) {
+	return ensureModelWithProgress(ctx, getenv, client, nil)
+}
+
+func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http.Client, progress progressFunc) (string, error) {
 	rawURL := strings.TrimSpace(getenv("MODEL_URL"))
 	if rawURL == "" {
 		return "", errors.New("MODEL_URL is empty; configure a GGUF download URL")
@@ -345,7 +489,7 @@ func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (st
 		return "", fmt.Errorf("download model: HTTP %d", resp.StatusCode)
 	}
 
-	written, err := copyModel(tmp, resp.Body, resp.ContentLength)
+	written, err := copyModel(tmp, resp.Body, resp.ContentLength, progress)
 	closeErr := tmp.Close()
 	if err != nil {
 		return "", err
@@ -417,10 +561,13 @@ func validateGGUFFile(path string) error {
 	return nil
 }
 
-func copyModel(dst io.Writer, src io.Reader, total int64) (int64, error) {
+func copyModel(dst io.Writer, src io.Reader, total int64, progress progressFunc) (int64, error) {
 	buf := make([]byte, 1024*1024)
 	var written int64
 	lastProgress := time.Now()
+	if progress != nil {
+		progress(0, total)
+	}
 	for {
 		n, readErr := src.Read(buf)
 		if n > 0 {
@@ -428,6 +575,9 @@ func copyModel(dst io.Writer, src io.Reader, total int64) (int64, error) {
 				return written, fmt.Errorf("write model file: %w", err)
 			}
 			written += int64(n)
+			if progress != nil {
+				progress(written, total)
+			}
 			if time.Since(lastProgress) >= 10*time.Second {
 				if total > 0 {
 					log.Printf("downloading model %.1f / %.1f GiB", gib(written), gib(total))
