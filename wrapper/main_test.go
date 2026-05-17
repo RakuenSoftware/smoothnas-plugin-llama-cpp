@@ -186,7 +186,7 @@ func TestEnsureModelDownloadsAndCaches(t *testing.T) {
 	var hits int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits++
-		_, _ = io.WriteString(w, "gguf-data")
+		_, _ = io.WriteString(w, "GGUF-data")
 	}))
 	defer srv.Close()
 
@@ -208,7 +208,7 @@ func TestEnsureModelDownloadsAndCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read model: %v", err)
 	}
-	if string(data) != "gguf-data" {
+	if string(data) != "GGUF-data" {
 		t.Fatalf("model data = %q", data)
 	}
 	if hits != 1 {
@@ -229,7 +229,7 @@ func TestEnsureModelDownloadsAndCaches(t *testing.T) {
 
 func TestEnsureModelReplacesWhenURLChanges(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, strings.TrimPrefix(r.URL.Path, "/"))
+		_, _ = io.WriteString(w, "GGUF-"+strings.TrimPrefix(r.URL.Path, "/"))
 	}))
 	defer srv.Close()
 
@@ -250,8 +250,93 @@ func TestEnsureModelReplacesWhenURLChanges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read replaced model: %v", err)
 	}
-	if string(data) != "second.gguf" {
-		t.Fatalf("model data = %q want second.gguf", data)
+	if string(data) != "GGUF-second.gguf" {
+		t.Fatalf("model data = %q want GGUF-second.gguf", data)
+	}
+}
+
+func TestEnsureModelNormalizesHuggingFaceBlobURL(t *testing.T) {
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  "https://huggingface.co/bartowski/model/blob/main/subdir/model.gguf?download=true",
+		"MODEL_PATH": modelPath,
+	}
+	client := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.String() != "https://huggingface.co/bartowski/model/resolve/main/subdir/model.gguf?download=true" {
+			t.Fatalf("download URL = %s", req.URL.String())
+		}
+		body := "GGUF-data"
+		return &http.Response{
+			StatusCode:    http.StatusOK,
+			Body:          io.NopCloser(strings.NewReader(body)),
+			ContentLength: int64(len(body)),
+			Header:        make(http.Header),
+			Request:       req,
+		}, nil
+	})}
+
+	if _, err := ensureModel(context.Background(), mapEnv(env), client); err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+}
+
+func TestEnsureModelRejectsNonGGUFDownload(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = io.WriteString(w, "<!doctype html>")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf",
+		"MODEL_PATH": modelPath,
+	}
+
+	_, err := ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err == nil || !strings.Contains(err.Error(), "not a GGUF") {
+		t.Fatalf("err = %v want GGUF validation error", err)
+	}
+	if _, statErr := os.Stat(modelPath); !os.IsNotExist(statErr) {
+		t.Fatalf("model file stat err = %v want not exist", statErr)
+	}
+}
+
+func TestEnsureModelReplacesInvalidCachedFile(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		_, _ = io.WriteString(w, "GGUF-fixed")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf",
+		"MODEL_PATH": modelPath,
+	}
+	if err := os.WriteFile(modelPath, []byte("<!doctype html>"), 0o640); err != nil {
+		t.Fatalf("write cached model: %v", err)
+	}
+	if err := os.WriteFile(modelPath+".url", []byte(env["MODEL_URL"]+"\n"), 0o640); err != nil {
+		t.Fatalf("write marker: %v", err)
+	}
+
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if hits != 1 {
+		t.Fatalf("hits = %d want 1", hits)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read model: %v", err)
+	}
+	if string(data) != "GGUF-fixed" {
+		t.Fatalf("model data = %q want GGUF-fixed", data)
 	}
 }
 
@@ -316,6 +401,12 @@ func mapEnv(values map[string]string) envGetter {
 	return func(key string) string {
 		return values[key]
 	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 // freePort grabs an OS-assigned ephemeral port and returns it as a

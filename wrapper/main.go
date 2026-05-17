@@ -215,9 +215,9 @@ func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (st
 	if rawURL == "" {
 		return "", errors.New("MODEL_URL is empty; configure a GGUF download URL")
 	}
-	u, err := url.Parse(rawURL)
-	if err != nil || u == nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return "", fmt.Errorf("MODEL_URL must be an http or https URL")
+	downloadURL, err := normalizeModelURL(rawURL)
+	if err != nil {
+		return "", err
 	}
 
 	modelPath := strings.TrimSpace(getenv("MODEL_PATH"))
@@ -229,7 +229,7 @@ func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (st
 	}
 
 	markerPath := modelPath + ".url"
-	if modelReady(modelPath, markerPath, rawURL) {
+	if modelReady(modelPath, markerPath, downloadURL) {
 		log.Printf("using cached model %s", modelPath)
 		return modelPath, nil
 	}
@@ -248,7 +248,7 @@ func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (st
 	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath) //nolint:errcheck // success path renames it away
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		_ = tmp.Close()
 		return "", fmt.Errorf("build model request: %w", err)
@@ -275,17 +275,32 @@ func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (st
 	if written == 0 {
 		return "", errors.New("downloaded model is empty")
 	}
+	if err := validateGGUFFile(tmpPath); err != nil {
+		return "", err
+	}
 	if err := os.Chmod(tmpPath, 0o640); err != nil {
 		return "", fmt.Errorf("chmod model file: %w", err)
 	}
 	if err := os.Rename(tmpPath, modelPath); err != nil {
 		return "", fmt.Errorf("install model file: %w", err)
 	}
-	if err := os.WriteFile(markerPath, []byte(rawURL+"\n"), 0o640); err != nil {
+	if err := os.WriteFile(markerPath, []byte(downloadURL+"\n"), 0o640); err != nil {
 		return "", fmt.Errorf("write model url marker: %w", err)
 	}
-	log.Printf("installed model %s from %s", modelPath, rawURL)
+	log.Printf("installed model %s from %s", modelPath, downloadURL)
 	return modelPath, nil
+}
+
+func normalizeModelURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil || u == nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return "", fmt.Errorf("MODEL_URL must be an http or https URL")
+	}
+	if strings.EqualFold(u.Hostname(), "huggingface.co") && strings.Contains(u.Path, "/blob/") {
+		u.Path = strings.Replace(u.Path, "/blob/", "/resolve/", 1)
+		u.RawPath = ""
+	}
+	return u.String(), nil
 }
 
 func modelReady(modelPath, markerPath, rawURL string) bool {
@@ -293,11 +308,32 @@ func modelReady(modelPath, markerPath, rawURL string) bool {
 	if err != nil || info.Size() <= 0 {
 		return false
 	}
+	if err := validateGGUFFile(modelPath); err != nil {
+		return false
+	}
 	data, err := os.ReadFile(markerPath)
 	if err != nil {
 		return false
 	}
 	return strings.TrimSpace(string(data)) == rawURL
+}
+
+func validateGGUFFile(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open downloaded model: %w", err)
+	}
+	defer f.Close()
+
+	magic := make([]byte, 4)
+	n, err := io.ReadFull(f, magic)
+	if err != nil {
+		return fmt.Errorf("downloaded model is not a GGUF file: read %d magic bytes: %w", n, err)
+	}
+	if string(magic) != "GGUF" {
+		return fmt.Errorf("downloaded model is not a GGUF file: magic %q", string(magic))
+	}
+	return nil
 }
 
 func copyModel(dst io.Writer, src io.Reader, total int64) (int64, error) {
