@@ -23,6 +23,13 @@
 //	                             Appended as --temp unless the manifest
 //	                             already supplies --temp explicitly.
 //
+//	MODEL_URL                   Required model download URL. The wrapper
+//	                             downloads this into MODEL_PATH before
+//	                             starting llama-server.
+//
+//	MODEL_PATH                  Private in-container model destination.
+//	                             Default: /models/model.gguf.
+//
 //	LISTEN_ADDR                 Address the wrapper itself binds. Default:
 //	                             :8080. Matches the manifest's exposed port.
 //
@@ -44,6 +51,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -52,6 +60,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -66,12 +75,17 @@ func main() {
 		log.Fatal("SMOOTHNAS_BEARER_EXPECTED is empty; refusing to start without auth")
 	}
 
-	llamaArgs := buildLlamaArgs(llamaPort, os.Args[1:], os.Getenv)
-
 	// Spawn upstream llama-server. SIGTERM/SIGINT to the wrapper
 	// propagates: we catch it, signal the child, wait briefly, exit.
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
+
+	modelPath, err := ensureModel(ctx, os.Getenv, http.DefaultClient)
+	if err != nil {
+		log.Fatalf("prepare model: %v", err)
+	}
+	llamaArgs := buildLlamaArgs(llamaPort, os.Args[1:], os.Getenv)
+	llamaArgs = appendModelArgIfMissing(llamaArgs, modelPath)
 
 	cmd := exec.CommandContext(ctx, llamaBin, llamaArgs...)
 	cmd.Stdout = os.Stdout
@@ -194,11 +208,144 @@ func envOr(k, def string) string {
 
 type envGetter func(string) string
 
+const defaultModelPath = "/models/model.gguf"
+
+func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (string, error) {
+	rawURL := strings.TrimSpace(getenv("MODEL_URL"))
+	if rawURL == "" {
+		return "", errors.New("MODEL_URL is empty; configure a GGUF download URL")
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil || u == nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return "", fmt.Errorf("MODEL_URL must be an http or https URL")
+	}
+
+	modelPath := strings.TrimSpace(getenv("MODEL_PATH"))
+	if modelPath == "" {
+		modelPath = defaultModelPath
+	}
+	if !filepath.IsAbs(modelPath) {
+		return "", fmt.Errorf("MODEL_PATH must be absolute")
+	}
+
+	markerPath := modelPath + ".url"
+	if modelReady(modelPath, markerPath, rawURL) {
+		log.Printf("using cached model %s", modelPath)
+		return modelPath, nil
+	}
+
+	if client == nil {
+		client = http.DefaultClient
+	}
+	if err := os.MkdirAll(filepath.Dir(modelPath), 0o750); err != nil {
+		return "", fmt.Errorf("create model directory: %w", err)
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(modelPath), ".model-*.download")
+	if err != nil {
+		return "", fmt.Errorf("create temporary model file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath) //nolint:errcheck // success path renames it away
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		_ = tmp.Close()
+		return "", fmt.Errorf("build model request: %w", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		_ = tmp.Close()
+		return "", fmt.Errorf("download model: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		_ = tmp.Close()
+		return "", fmt.Errorf("download model: HTTP %d", resp.StatusCode)
+	}
+
+	written, err := copyModel(tmp, resp.Body, resp.ContentLength)
+	closeErr := tmp.Close()
+	if err != nil {
+		return "", err
+	}
+	if closeErr != nil {
+		return "", fmt.Errorf("close model file: %w", closeErr)
+	}
+	if written == 0 {
+		return "", errors.New("downloaded model is empty")
+	}
+	if err := os.Chmod(tmpPath, 0o640); err != nil {
+		return "", fmt.Errorf("chmod model file: %w", err)
+	}
+	if err := os.Rename(tmpPath, modelPath); err != nil {
+		return "", fmt.Errorf("install model file: %w", err)
+	}
+	if err := os.WriteFile(markerPath, []byte(rawURL+"\n"), 0o640); err != nil {
+		return "", fmt.Errorf("write model url marker: %w", err)
+	}
+	log.Printf("installed model %s from %s", modelPath, rawURL)
+	return modelPath, nil
+}
+
+func modelReady(modelPath, markerPath, rawURL string) bool {
+	info, err := os.Stat(modelPath)
+	if err != nil || info.Size() <= 0 {
+		return false
+	}
+	data, err := os.ReadFile(markerPath)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(data)) == rawURL
+}
+
+func copyModel(dst io.Writer, src io.Reader, total int64) (int64, error) {
+	buf := make([]byte, 1024*1024)
+	var written int64
+	lastProgress := time.Now()
+	for {
+		n, readErr := src.Read(buf)
+		if n > 0 {
+			if _, err := dst.Write(buf[:n]); err != nil {
+				return written, fmt.Errorf("write model file: %w", err)
+			}
+			written += int64(n)
+			if time.Since(lastProgress) >= 10*time.Second {
+				if total > 0 {
+					log.Printf("downloading model %.1f / %.1f GiB", gib(written), gib(total))
+				} else {
+					log.Printf("downloading model %.1f GiB", gib(written))
+				}
+				lastProgress = time.Now()
+			}
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return written, fmt.Errorf("read model download: %w", readErr)
+		}
+	}
+	return written, nil
+}
+
+func gib(v int64) float64 {
+	return float64(v) / (1024 * 1024 * 1024)
+}
+
 func buildLlamaArgs(llamaPort string, passthrough []string, getenv envGetter) []string {
 	args := append([]string{"--host", "127.0.0.1", "--port", llamaPort}, passthrough...)
 	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_TEMP", "--temp")
 	args = append(args, speculativeArgs(getenv)...)
 	return args
+}
+
+func appendModelArgIfMissing(args []string, modelPath string) []string {
+	if hasFlag(args, "--model") {
+		return args
+	}
+	return append(args, "--model", modelPath)
 }
 
 func appendEnvArgIfMissing(args []string, getenv envGetter, envKey, flag string) []string {

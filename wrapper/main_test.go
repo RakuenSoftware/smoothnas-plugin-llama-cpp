@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -163,6 +165,100 @@ func TestBuildLlamaArgs_DoesNotDuplicateTemperature(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestAppendModelArgIfMissing(t *testing.T) {
+	got := appendModelArgIfMissing([]string{"--ctx-size", "4096"}, "/models/model.gguf")
+	want := []string{"--ctx-size", "4096", "--model", "/models/model.gguf"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+
+	got = appendModelArgIfMissing([]string{"--model", "/custom/model.gguf"}, "/models/model.gguf")
+	want = []string{"--model", "/custom/model.gguf"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args with existing model = %#v want %#v", got, want)
+	}
+}
+
+func TestEnsureModelDownloadsAndCaches(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		_, _ = io.WriteString(w, "gguf-data")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf",
+		"MODEL_PATH": modelPath,
+	}
+
+	got, err := ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if got != modelPath {
+		t.Fatalf("model path = %q want %q", got, modelPath)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read model: %v", err)
+	}
+	if string(data) != "gguf-data" {
+		t.Fatalf("model data = %q", data)
+	}
+	if hits != 1 {
+		t.Fatalf("hits after first download = %d want 1", hits)
+	}
+
+	got, err = ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel cached: %v", err)
+	}
+	if got != modelPath {
+		t.Fatalf("cached path = %q want %q", got, modelPath)
+	}
+	if hits != 1 {
+		t.Fatalf("cached ensureModel should not re-download, hits=%d", hits)
+	}
+}
+
+func TestEnsureModelReplacesWhenURLChanges(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, strings.TrimPrefix(r.URL.Path, "/"))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/first.gguf",
+		"MODEL_PATH": modelPath,
+	}
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("first ensureModel: %v", err)
+	}
+	env["MODEL_URL"] = srv.URL + "/second.gguf"
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("second ensureModel: %v", err)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read replaced model: %v", err)
+	}
+	if string(data) != "second.gguf" {
+		t.Fatalf("model data = %q want second.gguf", data)
+	}
+}
+
+func TestEnsureModelRequiresURL(t *testing.T) {
+	_, err := ensureModel(context.Background(), mapEnv(map[string]string{}), http.DefaultClient)
+	if err == nil || !strings.Contains(err.Error(), "MODEL_URL") {
+		t.Fatalf("err = %v want MODEL_URL error", err)
 	}
 }
 
