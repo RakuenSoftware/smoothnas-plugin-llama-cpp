@@ -33,15 +33,13 @@ This repo's `wrapper/` is a tiny Go binary (~150 LoC) that:
 
 In the SmoothNAS UI:
 
-1. **Install** → paste this manifest into the wizard, pick a tier with NVME slot capacity, install
-2. **Stage models** → copy GGUF files into `/mnt/<tier>/.plugins/llama-cpp/models/` over SMB / NFS / SCP
-3. **Configure** → set `MODEL_PATH` on the detail page (default `/models/Qwen_Qwen3.6-35B-A3B-Q5_K_M.gguf`)
-4. **Start** → click Start; tierd pulls the wrapper image, creates the container, captures the bridge IP, writes the nginx route with the bearer token
-5. **Open** → click Open on the card; the llama.cpp UI renders inside the SmoothNAS chrome at `https://<smoothnas>/plugins/llama-cpp/`
+1. **Install** → paste this manifest into the wizard, pick a tier with NVME slot capacity, set `MODEL_URL` to the GGUF download URL, install
+2. **Start** → click Start; tierd pulls the wrapper image, creates the container, captures the bridge IP, writes the nginx route with the bearer token, and the wrapper downloads the configured model URL into `/models/model.gguf`
+3. **Open** → click Open on the card; the llama.cpp UI renders inside the SmoothNAS chrome at `https://<smoothnas>/plugins/llama-cpp/`
 
 The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with Q8 KV cache:
 
-- `MODEL_PATH=/models/Qwen_Qwen3.6-35B-A3B-Q5_K_M.gguf`
+- `MODEL_URL=<https://.../*.gguf>`
 - `CTX_SIZE=524288` (total server context; with four slots this gives 128K per slot)
 - `PARALLEL_SLOTS=4`
 - `N_GPU_LAYERS=999` on CUDA/Vulkan manifests
@@ -54,8 +52,9 @@ The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with Q8 KV cache:
 - `SPECULATIVE_MODE=none`
 
 Quantization is selected by the GGUF file itself. To use a different
-quantization, stage that GGUF under the models volume and update
-`MODEL_PATH`; the default is intentionally Q5_K_M, not Q4.
+quantization, update `MODEL_URL` and restart the plugin; the wrapper
+keeps a single active model at `/models/model.gguf` and replaces it
+when the URL changes.
 
 The manifests expose llama.cpp's MTP/speculative decoding controls in
 the plugin config UI. Leave `SPECULATIVE_MODE=none` for normal startup.

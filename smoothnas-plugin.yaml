@@ -30,8 +30,6 @@ artifact:
 
 container:
   command:
-    - "--model"
-    - "${MODEL_PATH}"
     - "--temp"
     - "${LLAMA_ARG_TEMP}"
     - "--n-gpu-layers"
@@ -67,11 +65,14 @@ profiles:
   - default-limits
 
 config:
-  - key: MODEL_PATH
+  - key: MODEL_URL
     type: string
-    label: Model GGUF path
-    default: /models/Qwen_Qwen3.6-35B-A3B-Q5_K_M.gguf
-    description: Model file (path inside the container; /models maps to the tier-bound volume). Default targets Qwen3.6 35B-A3B Q5_K_M.
+    label: Model download URL
+    default: ""
+    description: |
+      HTTP(S) URL for the GGUF model this one-model container should run.
+      On start, the wrapper downloads this URL into /models/model.gguf
+      inside the container, replacing the prior model when the URL changes.
   - key: LLAMA_ARG_TEMP
     type: number
     label: Temperature
