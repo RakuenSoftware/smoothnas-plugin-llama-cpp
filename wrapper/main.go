@@ -19,6 +19,10 @@
 //	LLAMA_PORT                  Port the upstream llama-server listens on
 //	                             (loopback only). Default: 8081.
 //
+//	LLAMA_ARG_TEMP              Optional default sampling temperature.
+//	                             Appended as --temp unless the manifest
+//	                             already supplies --temp explicitly.
+//
 //	LISTEN_ADDR                 Address the wrapper itself binds. Default:
 //	                             :8080. Matches the manifest's exposed port.
 //
@@ -192,8 +196,28 @@ type envGetter func(string) string
 
 func buildLlamaArgs(llamaPort string, passthrough []string, getenv envGetter) []string {
 	args := append([]string{"--host", "127.0.0.1", "--port", llamaPort}, passthrough...)
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_TEMP", "--temp")
 	args = append(args, speculativeArgs(getenv)...)
 	return args
+}
+
+func appendEnvArgIfMissing(args []string, getenv envGetter, envKey, flag string) []string {
+	if hasFlag(args, flag) {
+		return args
+	}
+	if v := strings.TrimSpace(getenv(envKey)); v != "" {
+		return append(args, flag, v)
+	}
+	return args
+}
+
+func hasFlag(args []string, flag string) bool {
+	for _, arg := range args {
+		if arg == flag || strings.HasPrefix(arg, flag+"=") {
+			return true
+		}
+	}
+	return false
 }
 
 func speculativeArgs(getenv envGetter) []string {

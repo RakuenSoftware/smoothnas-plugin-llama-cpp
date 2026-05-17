@@ -45,6 +45,7 @@ The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with Q8 KV cache:
 - `CTX_SIZE=524288` (total server context; with four slots this gives 128K per slot)
 - `PARALLEL_SLOTS=4`
 - `N_GPU_LAYERS=999` on CUDA/Vulkan manifests
+- `LLAMA_ARG_TEMP=0.8`
 - `MEMORY_LIMIT=64GiB`
 - `LLAMA_ARG_CACHE_TYPE_K=q8_0`
 - `LLAMA_ARG_CACHE_TYPE_V=q8_0`
