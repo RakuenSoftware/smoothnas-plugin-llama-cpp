@@ -1,16 +1,17 @@
 name: release-please
 
 # Bumps the version + opens (or updates) a "Release vX.Y.Z" PR every
-# time a conventional commit lands on main. Merging that PR creates
-# the v* tag, which fires release.yml to build + publish the three
-# variant images (cuda / vulkan / cpu) and attach the digest-pinned
-# manifests to the GitHub release.
+# time a conventional commit lands on main. When release-please creates
+# a release/tag, this workflow dispatches release.yml for that tag so
+# image publishing does not depend on GitHub emitting a tag-push workflow
+# from the default GITHUB_TOKEN.
 
 on:
   push:
     branches: [main]
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -18,8 +19,16 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - id: release
+        uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Dispatch release asset publisher
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+        run: gh workflow run release.yml --ref "$TAG_NAME"
