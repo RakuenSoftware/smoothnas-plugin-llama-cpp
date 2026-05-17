@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.5...v0.3.0) (2026-05-17)
+
+
+### Features
+
+* show model download progress ([#23](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/23)) ([4001500](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/4001500cc25071289069e782a614dba3a5306276))
+
 ## [0.2.5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.4...v0.2.5) (2026-05-17)
 
 
