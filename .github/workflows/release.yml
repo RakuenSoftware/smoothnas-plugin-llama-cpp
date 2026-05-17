@@ -129,15 +129,18 @@ jobs:
               exit 1
             fi
             out="release/$(basename $src)"
-            image="ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:${version}-${variant}@${digest}"
+            image="ghcr.io/rakuensoftware/smoothnas-plugin-llama-cpp:${version}-${variant}"
             # Release manifests are the installable artifacts: set the
             # manifest version and pin the image to the exact digest that
-            # buildx just pushed, while preserving the variant tag.
-            python3 - "$src" "$out" "$version" "$image" <<'EOF'
+            # buildx just pushed. Keep the tag in artifact.image for human
+            # readability, and write the digest to artifact.digest so
+            # SmoothNAS can pull repository@digest without handing skopeo the
+            # unsupported repository:tag@digest form.
+            python3 - "$src" "$out" "$version" "$image" "$digest" <<'EOF'
           import re
           import sys
 
-          src, out, version, image = sys.argv[1:]
+          src, out, version, image, digest = sys.argv[1:]
           with open(src, encoding="utf-8") as f:
               manifest = f.read()
 
@@ -153,6 +156,16 @@ jobs:
               manifest,
               count=1,
           )
+          digest_re = re.compile(r'(?m)^(\s*)digest:\s*sha256:[0-9a-f]+(\s*#.*)?$')
+          if digest_re.search(manifest):
+              manifest = digest_re.sub(rf'\g<1>digest: {digest}\2', manifest, count=1)
+          else:
+              manifest = re.sub(
+                  r'(?m)^(\s*image:\s*[^\n]*\n)',
+                  rf'\1  digest: {digest}\n',
+                  manifest,
+                  count=1,
+              )
 
           with open(out, "w", encoding="utf-8") as f:
               f.write(manifest)
