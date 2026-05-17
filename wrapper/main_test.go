@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -83,6 +84,52 @@ func TestAuthHandler_NotPrefixedBearerRejected(t *testing.T) {
 		if rr.Code != http.StatusUnauthorized {
 			t.Errorf("Authorization=%q: status = %d want 401", header, rr.Code)
 		}
+	}
+}
+
+func TestModelErrorHandlerReturnsVisibleHTML(t *testing.T) {
+	h := modelErrorHandler(errors.New(`downloaded model is not a GGUF file: magic "<!do"`))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d want 503", rr.Code)
+	}
+	if got := rr.Header().Get("Content-Type"); !strings.Contains(got, "text/html") {
+		t.Fatalf("content-type = %q want text/html", got)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "Model configuration error") {
+		t.Fatalf("body missing title: %q", body)
+	}
+	if !strings.Contains(body, "MODEL_URL") {
+		t.Fatalf("body missing MODEL_URL guidance: %q", body)
+	}
+	if strings.Contains(body, `magic "<!do"`) {
+		t.Fatalf("body did not escape HTML-sensitive error text: %q", body)
+	}
+}
+
+func TestModelErrorHandlerReturnsJSONForAPI(t *testing.T) {
+	h := modelErrorHandler(errors.New("download model: HTTP 404"))
+	req := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	req.Header.Set("Accept", "application/json")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d want 503", rr.Code)
+	}
+	if got := rr.Header().Get("Content-Type"); !strings.Contains(got, "application/json") {
+		t.Fatalf("content-type = %q want application/json", got)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, `"type":"model_configuration_error"`) {
+		t.Fatalf("body missing error type: %q", body)
+	}
+	if !strings.Contains(body, "download model: HTTP 404") {
+		t.Fatalf("body missing error detail: %q", body)
 	}
 }
 
