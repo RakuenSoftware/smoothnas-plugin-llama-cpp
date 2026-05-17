@@ -82,7 +82,9 @@ func main() {
 
 	modelPath, err := ensureModel(ctx, os.Getenv, http.DefaultClient)
 	if err != nil {
-		log.Fatalf("prepare model: %v", err)
+		log.Printf("prepare model: %v", err)
+		runModelErrorServer(ctx, listenAddr, expected, err)
+		return
 	}
 	llamaArgs := buildLlamaArgs(llamaPort, os.Args[1:], os.Getenv)
 	llamaArgs = appendModelArgIfMissing(llamaArgs, modelPath)
@@ -153,6 +155,85 @@ func main() {
 		_ = cmd.Process.Signal(syscall.SIGTERM)
 		_, _ = cmd.Process.Wait()
 	}
+}
+
+func runModelErrorServer(ctx context.Context, listenAddr, expected string, prepareErr error) {
+	srv := &http.Server{
+		Addr:              listenAddr,
+		Handler:           authHandler(expected, modelErrorHandler(prepareErr)),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	serverDone := make(chan error, 1)
+	go func() { serverDone <- srv.ListenAndServe() }()
+	log.Printf("wrapper listening on %s; model configuration error visible over HTTP", listenAddr)
+
+	select {
+	case <-ctx.Done():
+		log.Printf("signal received; shutting down")
+	case err := <-serverDone:
+		log.Printf("listener exited: %v", err)
+	}
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelShutdown()
+	_ = srv.Shutdown(shutdownCtx)
+}
+
+func modelErrorHandler(prepareErr error) http.Handler {
+	message := modelErrorMessage(prepareErr)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		if strings.Contains(r.Header.Get("Accept"), "application/json") || strings.HasPrefix(r.URL.Path, "/v1/") {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = fmt.Fprintf(w, `{"error":{"message":%q,"type":"model_configuration_error"}}`+"\n", message)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = fmt.Fprintf(w, `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>llama.cpp model configuration error</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #202124; background: #f7f7f5; }
+    main { max-width: 720px; margin: 10vh auto; padding: 32px; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+    h1 { margin: 0 0 12px; font-size: 24px; }
+    p { line-height: 1.5; }
+    code { background: #f0f0ed; padding: 2px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Model configuration error</h1>
+  <p>%s</p>
+  <p>Update <code>MODEL_URL</code> to a direct HTTP(S) GGUF download URL, then restart the plugin.</p>
+</main>
+</body>
+</html>
+`, htmlEscape(message))
+	})
+}
+
+func modelErrorMessage(prepareErr error) string {
+	if prepareErr == nil {
+		return "The configured model could not be prepared."
+	}
+	return "The configured MODEL_URL could not be prepared: " + prepareErr.Error()
+}
+
+func htmlEscape(s string) string {
+	replacer := strings.NewReplacer(
+		"&", "&amp;",
+		"<", "&lt;",
+		">", "&gt;",
+		`"`, "&quot;",
+		"'", "&#39;",
+	)
+	return replacer.Replace(s)
 }
 
 // authHandler wraps next so every request must carry
