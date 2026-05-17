@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.4...v0.2.5) (2026-05-17)
+
+
+### Bug Fixes
+
+* surface model URL errors in plugin UI ([#21](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/21)) ([665c020](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/665c020425957d88453d6dc0898b174e7c1dd934))
+
 ## [0.2.4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.3...v0.2.4) (2026-05-17)
 
 
