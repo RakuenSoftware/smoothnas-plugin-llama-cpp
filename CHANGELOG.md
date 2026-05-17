@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.3...v0.2.4) (2026-05-17)
+
+
+### Bug Fixes
+
+* handle Hugging Face browser model URLs ([#19](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/19)) ([717be1e](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/717be1eda00a2b610e5fb48193a234176da745fd))
+
 ## [0.2.3](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.2...v0.2.3) (2026-05-17)
 
 

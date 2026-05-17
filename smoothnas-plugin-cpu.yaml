@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.2.3
+  version: 0.2.4
   description: |
     llama.cpp inference server, CPU only. For hosts without a GPU,
     or for quick experiments before paying the GPU pull cost.
