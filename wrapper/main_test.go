@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -130,6 +131,76 @@ func TestModelErrorHandlerReturnsJSONForAPI(t *testing.T) {
 	}
 	if !strings.Contains(body, "download model: HTTP 404") {
 		t.Fatalf("body missing error detail: %q", body)
+	}
+}
+
+func TestModelProgressHandlerReturnsVisibleHTML(t *testing.T) {
+	h := modelProgressHandler(startupSnapshot{
+		phase:   "Downloading model",
+		message: "Downloading model 1.0 / 2.0 GiB (50%).",
+		written: 1024,
+		total:   2048,
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d want 200", rr.Code)
+	}
+	if got := rr.Header().Get("Content-Type"); !strings.Contains(got, "text/html") {
+		t.Fatalf("content-type = %q want text/html", got)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "Downloading model") {
+		t.Fatalf("body missing phase: %q", body)
+	}
+	if !strings.Contains(body, `value="1024" max="2048"`) {
+		t.Fatalf("body missing progress element: %q", body)
+	}
+	if !strings.Contains(body, `http-equiv="refresh"`) {
+		t.Fatalf("body missing refresh: %q", body)
+	}
+}
+
+func TestModelProgressHandlerReturnsJSONForAPI(t *testing.T) {
+	h := modelProgressHandler(startupSnapshot{
+		phase:   "Downloading model",
+		message: "Downloading model.",
+		written: 7,
+		total:   11,
+	})
+	req := httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	req.Header.Set("Accept", "application/json")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d want 503", rr.Code)
+	}
+	if got := rr.Header().Get("Content-Type"); !strings.Contains(got, "application/json") {
+		t.Fatalf("content-type = %q want application/json", got)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, `"status":"preparing"`) {
+		t.Fatalf("body missing status: %q", body)
+	}
+	if !strings.Contains(body, `"writtenBytes":7`) || !strings.Contains(body, `"totalBytes":11`) {
+		t.Fatalf("body missing byte counts: %q", body)
+	}
+}
+
+func TestStartupStateServesReadyHandler(t *testing.T) {
+	state := newStartupState()
+	state.setReady(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "ready")
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	state.ServeHTTP(rr, req)
+
+	if rr.Body.String() != "ready" {
+		t.Fatalf("body = %q want ready", rr.Body.String())
 	}
 }
 
@@ -271,6 +342,36 @@ func TestEnsureModelDownloadsAndCaches(t *testing.T) {
 	}
 	if hits != 1 {
 		t.Fatalf("cached ensureModel should not re-download, hits=%d", hits)
+	}
+}
+
+func TestEnsureModelReportsDownloadProgress(t *testing.T) {
+	body := "GGUF-data"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+		_, _ = io.WriteString(w, body)
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf",
+		"MODEL_PATH": modelPath,
+	}
+	var events []startupSnapshot
+	_, err := ensureModelWithProgress(context.Background(), mapEnv(env), srv.Client(), func(written, total int64) {
+		events = append(events, startupSnapshot{written: written, total: total})
+	})
+	if err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if len(events) < 2 {
+		t.Fatalf("events = %#v want start and progress events", events)
+	}
+	last := events[len(events)-1]
+	if last.written != int64(len(body)) || last.total != int64(len(body)) {
+		t.Fatalf("last event = %#v want written/total %d", last, len(body))
 	}
 }
 
