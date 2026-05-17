@@ -136,6 +136,36 @@ func TestBuildLlamaArgs_SpeculativeModeDisabled(t *testing.T) {
 	}
 }
 
+func TestBuildLlamaArgs_AppendsTemperature(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_TEMP": "0.35",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+		"--temp", "0.35",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_DoesNotDuplicateTemperature(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_TEMP": "0.35",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf", "--temp", "0.8"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+		"--temp", "0.8",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
 func TestBuildLlamaArgs_DraftMTP(t *testing.T) {
 	env := map[string]string{
 		"SPECULATIVE_MODE":          "draft-mtp",
