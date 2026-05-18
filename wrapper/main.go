@@ -459,6 +459,7 @@ func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http
 	if err != nil {
 		return "", err
 	}
+	cacheKey := modelCacheKey(downloadURL)
 
 	modelPath := strings.TrimSpace(getenv("MODEL_PATH"))
 	if modelPath == "" {
@@ -469,13 +470,16 @@ func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http
 	}
 
 	markerPath := modelPath + ".url"
-	if modelReady(modelPath, markerPath, downloadURL) {
+	if modelReady(modelPath, markerPath, cacheKey, downloadURL) {
 		log.Printf("using cached model %s", modelPath)
 		return modelPath, nil
 	}
 
 	if client == nil {
 		client = http.DefaultClient
+	}
+	if modelMarkerEmpty(markerPath) && adoptCachedModel(ctx, client, modelPath, markerPath, downloadURL, cacheKey) {
+		return modelPath, nil
 	}
 	if err := os.MkdirAll(filepath.Dir(modelPath), 0o750); err != nil {
 		return "", fmt.Errorf("create model directory: %w", err)
@@ -524,7 +528,7 @@ func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http
 	if err := os.Rename(tmpPath, modelPath); err != nil {
 		return "", fmt.Errorf("install model file: %w", err)
 	}
-	if err := os.WriteFile(markerPath, []byte(downloadURL+"\n"), 0o640); err != nil {
+	if err := os.WriteFile(markerPath, []byte(cacheKey+"\n"), 0o640); err != nil {
 		return "", fmt.Errorf("write model url marker: %w", err)
 	}
 	log.Printf("installed model %s from %s", modelPath, downloadURL)
@@ -543,7 +547,39 @@ func normalizeModelURL(rawURL string) (string, error) {
 	return u.String(), nil
 }
 
-func modelReady(modelPath, markerPath, rawURL string) bool {
+func modelCacheKey(downloadURL string) string {
+	u, err := url.Parse(downloadURL)
+	if err != nil || u == nil {
+		return downloadURL
+	}
+	q := u.Query()
+	for k := range q {
+		if isVolatileModelURLParam(k) {
+			delete(q, k)
+		}
+	}
+	u.RawQuery = q.Encode()
+	u.Fragment = ""
+	return u.String()
+}
+
+func isVolatileModelURLParam(key string) bool {
+	k := strings.ToLower(key)
+	return k == "download" ||
+		k == "expires" ||
+		k == "signature" ||
+		k == "policy" ||
+		k == "key-pair-id" ||
+		k == "awsaccesskeyid" ||
+		k == "response-content-disposition" ||
+		k == "response-content-type" ||
+		k == "response-cache-control" ||
+		k == "response-expires" ||
+		strings.HasPrefix(k, "x-amz-") ||
+		strings.HasPrefix(k, "x-goog-")
+}
+
+func modelReady(modelPath, markerPath string, cacheKeys ...string) bool {
 	info, err := os.Stat(modelPath)
 	if err != nil || info.Size() <= 0 {
 		return false
@@ -555,7 +591,52 @@ func modelReady(modelPath, markerPath, rawURL string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.TrimSpace(string(data)) == rawURL
+	marker := strings.TrimSpace(string(data))
+	for _, key := range cacheKeys {
+		if marker == key || modelCacheKey(marker) == key {
+			return true
+		}
+	}
+	return false
+}
+
+func modelMarkerEmpty(markerPath string) bool {
+	data, err := os.ReadFile(markerPath)
+	return os.IsNotExist(err) || (err == nil && strings.TrimSpace(string(data)) == "")
+}
+
+func adoptCachedModel(ctx context.Context, client *http.Client, modelPath, markerPath, downloadURL, cacheKey string) bool {
+	info, err := os.Stat(modelPath)
+	if err != nil || info.Size() <= 0 {
+		return false
+	}
+	if err := validateGGUFFile(modelPath); err != nil {
+		return false
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, downloadURL, nil)
+	if err != nil {
+		return false
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("cached model probe failed: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 || resp.ContentLength <= 0 {
+		return false
+	}
+	if resp.ContentLength != info.Size() {
+		return false
+	}
+
+	if err := os.WriteFile(markerPath, []byte(cacheKey+"\n"), 0o640); err != nil {
+		log.Printf("using cached model %s, but could not write URL marker: %v", modelPath, err)
+		return true
+	}
+	log.Printf("using cached model %s after matching remote size", modelPath)
+	return true
 }
 
 func validateGGUFFile(path string) error {

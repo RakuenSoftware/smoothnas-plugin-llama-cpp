@@ -454,6 +454,194 @@ func TestEnsureModelReplacesWhenURLChanges(t *testing.T) {
 	}
 }
 
+func TestEnsureModelCachesVolatileURLParams(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		_, _ = io.WriteString(w, "GGUF-data")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf?download=true&Expires=1&X-Amz-Signature=first&keep=same",
+		"MODEL_PATH": modelPath,
+	}
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("first ensureModel: %v", err)
+	}
+
+	env["MODEL_URL"] = srv.URL + "/model.gguf?download=true&Expires=2&X-Amz-Signature=second&keep=same"
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("cached ensureModel: %v", err)
+	}
+	if hits != 1 {
+		t.Fatalf("hits = %d want 1", hits)
+	}
+}
+
+func TestEnsureModelAcceptsLegacyVolatileURLMarker(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		_, _ = io.WriteString(w, "GGUF-data")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	oldURL := srv.URL + "/model.gguf?download=true&Expires=1&X-Amz-Signature=first&keep=same"
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf?download=true&Expires=2&X-Amz-Signature=second&keep=same",
+		"MODEL_PATH": modelPath,
+	}
+	if err := os.WriteFile(modelPath, []byte("GGUF-data"), 0o640); err != nil {
+		t.Fatalf("write cached model: %v", err)
+	}
+	if err := os.WriteFile(modelPath+".url", []byte(oldURL+"\n"), 0o640); err != nil {
+		t.Fatalf("write marker: %v", err)
+	}
+
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if hits != 0 {
+		t.Fatalf("hits = %d want 0", hits)
+	}
+}
+
+func TestEnsureModelAdoptsExistingModelWhenMarkerMissing(t *testing.T) {
+	var heads, gets int
+	body := "GGUF-data"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			heads++
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+		case http.MethodGet:
+			gets++
+			_, _ = io.WriteString(w, body)
+		default:
+			http.Error(w, "unexpected method", http.StatusMethodNotAllowed)
+		}
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	if err := os.WriteFile(modelPath, []byte(body), 0o640); err != nil {
+		t.Fatalf("write cached model: %v", err)
+	}
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf",
+		"MODEL_PATH": modelPath,
+	}
+
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if heads != 1 {
+		t.Fatalf("heads = %d want 1", heads)
+	}
+	if gets != 0 {
+		t.Fatalf("gets = %d want 0", gets)
+	}
+}
+
+func TestEnsureModelDownloadsWhenExistingModelSizeDiffers(t *testing.T) {
+	var heads, gets int
+	body := "GGUF-new-data"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			heads++
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+		case http.MethodGet:
+			gets++
+			_, _ = io.WriteString(w, body)
+		default:
+			http.Error(w, "unexpected method", http.StatusMethodNotAllowed)
+		}
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	if err := os.WriteFile(modelPath, []byte("GGUF-old"), 0o640); err != nil {
+		t.Fatalf("write cached model: %v", err)
+	}
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/model.gguf",
+		"MODEL_PATH": modelPath,
+	}
+
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if heads != 1 {
+		t.Fatalf("heads = %d want 1", heads)
+	}
+	if gets != 1 {
+		t.Fatalf("gets = %d want 1", gets)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read model: %v", err)
+	}
+	if string(data) != body {
+		t.Fatalf("model data = %q want %q", data, body)
+	}
+}
+
+func TestEnsureModelDownloadsWhenMarkerURLDiffersEvenWithSameSize(t *testing.T) {
+	var heads, gets int
+	body := "GGUF-new"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			heads++
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+		case http.MethodGet:
+			gets++
+			_, _ = io.WriteString(w, body)
+		default:
+			http.Error(w, "unexpected method", http.StatusMethodNotAllowed)
+		}
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "model.gguf")
+	if err := os.WriteFile(modelPath, []byte("GGUF-old"), 0o640); err != nil {
+		t.Fatalf("write cached model: %v", err)
+	}
+	if err := os.WriteFile(modelPath+".url", []byte(srv.URL+"/old.gguf\n"), 0o640); err != nil {
+		t.Fatalf("write marker: %v", err)
+	}
+	env := map[string]string{
+		"MODEL_URL":  srv.URL + "/new.gguf",
+		"MODEL_PATH": modelPath,
+	}
+
+	if _, err := ensureModel(context.Background(), mapEnv(env), srv.Client()); err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if heads != 0 {
+		t.Fatalf("heads = %d want 0", heads)
+	}
+	if gets != 1 {
+		t.Fatalf("gets = %d want 1", gets)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read model: %v", err)
+	}
+	if string(data) != body {
+		t.Fatalf("model data = %q want %q", data, body)
+	}
+}
+
 func TestEnsureModelNormalizesHuggingFaceBlobURL(t *testing.T) {
 	dir := t.TempDir()
 	modelPath := filepath.Join(dir, "model.gguf")
