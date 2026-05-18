@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.3.0...v0.4.0) (2026-05-18)
+
+
+### Features
+
+* add install-time GPU selection ([66ae19f](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/66ae19f1358a805f3dafedc8953803d0f100f7c3))
+* add install-time GPU selection ([82927b9](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/82927b91634a3f8d903b258b69dad16bc15a58f9))
+
 ## [0.3.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.2.5...v0.3.0) (2026-05-17)
 
 
