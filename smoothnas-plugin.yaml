@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.4.2
+  version: 0.4.3
   description: |
     llama.cpp inference server with GPU or CPU execution, using the CUDA
     build on NVIDIA hosts.
