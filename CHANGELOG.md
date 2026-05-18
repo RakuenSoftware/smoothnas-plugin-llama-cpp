@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.0...v0.4.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* pass llama memory safety args ([e830f19](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/e830f1932617e4a5e09bbd3db82f00fd65d0a9d4))
+* pass llama memory safety args ([d497792](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/d49779201da431a62bf1e6167dff188bfe3cff45))
+
 ## [0.4.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.3.0...v0.4.0) (2026-05-18)
 
 
