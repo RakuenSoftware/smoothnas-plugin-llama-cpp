@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.2...v0.4.3) (2026-05-18)
+
+
+### Bug Fixes
+
+* avoid redundant model downloads ([#31](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/31)) ([357ac20](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/357ac203d858db4f63c1fbe687ad9ee71ea98e00))
+
 ## [0.4.2](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.1...v0.4.2) (2026-05-18)
 
 
