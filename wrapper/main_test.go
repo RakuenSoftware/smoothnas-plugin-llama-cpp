@@ -286,6 +286,57 @@ func TestBuildLlamaArgs_DoesNotDuplicateTemperature(t *testing.T) {
 	}
 }
 
+func TestBuildLlamaArgs_AppendsMemorySafetyArgs(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_FLASH_ATTN":   "on",
+		"LLAMA_ARG_CACHE_TYPE_K": "q8_0",
+		"LLAMA_ARG_CACHE_TYPE_V": "q8_0",
+		"LLAMA_ARG_N_CPU_MOE":    "10",
+		"LLAMA_ARG_FIT":          "on",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+		"--flash-attn", "on",
+		"--cache-type-k", "q8_0",
+		"--cache-type-v", "q8_0",
+		"--n-cpu-moe", "10",
+		"--fit", "on",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_DoesNotDuplicateMemorySafetyArgs(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_FLASH_ATTN":   "on",
+		"LLAMA_ARG_CACHE_TYPE_K": "q8_0",
+		"LLAMA_ARG_CACHE_TYPE_V": "q8_0",
+		"LLAMA_ARG_N_CPU_MOE":    "10",
+		"LLAMA_ARG_FIT":          "on",
+	}
+	got := buildLlamaArgs("8081", []string{
+		"--flash-attn", "off",
+		"--cache-type-k", "q4_0",
+		"--cache-type-v=q5_0",
+		"--n-cpu-moe", "3",
+		"--fit=off",
+	}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--flash-attn", "off",
+		"--cache-type-k", "q4_0",
+		"--cache-type-v=q5_0",
+		"--n-cpu-moe", "3",
+		"--fit=off",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
 func TestAppendModelArgIfMissing(t *testing.T) {
 	got := appendModelArgIfMissing([]string{"--ctx-size", "4096"}, "/models/model.gguf")
 	want := []string{"--ctx-size", "4096", "--model", "/models/model.gguf"}

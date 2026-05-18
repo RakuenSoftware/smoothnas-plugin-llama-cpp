@@ -23,6 +23,21 @@
 //	                             Appended as --temp unless the manifest
 //	                             already supplies --temp explicitly.
 //
+//	LLAMA_ARG_FLASH_ATTN        Optional flash-attention mode. Appended as
+//	                             --flash-attn unless already supplied.
+//
+//	LLAMA_ARG_CACHE_TYPE_K      Optional K cache quantization. Appended as
+//	                             --cache-type-k unless already supplied.
+//
+//	LLAMA_ARG_CACHE_TYPE_V      Optional V cache quantization. Appended as
+//	                             --cache-type-v unless already supplied.
+//
+//	LLAMA_ARG_N_CPU_MOE         Optional MoE expert layers kept on CPU.
+//	                             Appended as --n-cpu-moe unless supplied.
+//
+//	LLAMA_ARG_FIT               Optional llama.cpp fit mode. Appended as
+//	                             --fit unless already supplied.
+//
 //	MODEL_URL                   Required model download URL. The wrapper
 //	                             downloads this into MODEL_PATH before
 //	                             starting llama-server.
@@ -604,6 +619,11 @@ func gib(v int64) float64 {
 func buildLlamaArgs(llamaPort string, passthrough []string, getenv envGetter) []string {
 	args := append([]string{"--host", "127.0.0.1", "--port", llamaPort}, passthrough...)
 	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_TEMP", "--temp")
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_FLASH_ATTN", "--flash-attn")
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_CACHE_TYPE_K", "--cache-type-k")
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_CACHE_TYPE_V", "--cache-type-v")
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_N_CPU_MOE", "--n-cpu-moe")
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_FIT", "--fit")
 	args = append(args, speculativeArgs(getenv)...)
 	return args
 }
