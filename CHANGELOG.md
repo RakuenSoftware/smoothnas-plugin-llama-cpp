@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.1...v0.4.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* generalize llama plugin description ([b665833](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/b6658336d20223c40ef70b7dd487063adb3779be))
+
 ## [0.4.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.0...v0.4.1) (2026-05-18)
 
 
