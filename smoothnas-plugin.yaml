@@ -4,7 +4,8 @@ metadata:
   name: llama-cpp
   version: 0.4.1
   description: |
-    llama.cpp inference server with NVIDIA CUDA acceleration.
+    llama.cpp inference server with GPU or CPU execution, using the CUDA
+    build on NVIDIA hosts.
     Models live on the NVME slot of an operator-chosen tier.
     Bearer-injected auth — SmoothNAS injects a per-plugin token via
     the nginx route; the wrapper image validates it before forwarding
