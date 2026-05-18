@@ -37,6 +37,10 @@ In the SmoothNAS UI:
 2. **Start** → click Start; tierd pulls the wrapper image, creates the container, captures the bridge IP, writes the nginx route with the bearer token, and the wrapper downloads the configured model URL into `/models/model.gguf`
 3. **Open** → click Open on the card; the llama.cpp UI renders inside the SmoothNAS chrome at `https://<smoothnas>/plugins/llama-cpp/`
 
+CUDA and Vulkan manifests expose a `GPU` install-time field. Leave it
+automatic to use the default SmoothNAS GPU profile, or select a host GPU to
+narrow passthrough to that device.
+
 The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with Q8 KV cache:
 
 - `MODEL_URL=<https://.../*.gguf>`
