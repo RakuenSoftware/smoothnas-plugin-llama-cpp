@@ -43,6 +43,14 @@ profiles:
   - gpu-amd
   - default-limits
 config:
+  - key: SMOOTHNAS_GPU
+    type: gpu
+    label: GPU
+    gpuVendor: amd
+    default: ''
+    description: |
+      DRM render node to pass through for Vulkan. Leave automatic to use the
+      host default; selecting a device narrows passthrough to that render node.
   - key: MODEL_URL
     type: string
     label: Model download URL

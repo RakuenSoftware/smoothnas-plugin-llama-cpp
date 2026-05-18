@@ -46,6 +46,14 @@ profiles:
   - gpu-nvidia
   - default-limits
 config:
+  - key: SMOOTHNAS_GPU
+    type: gpu
+    label: GPU
+    gpuVendor: nvidia
+    default: ''
+    description: |
+      NVIDIA GPU device to pass through. Leave automatic to use the host
+      default; selecting a device narrows passthrough to that GPU.
   - key: MODEL_URL
     type: string
     label: Model download URL
