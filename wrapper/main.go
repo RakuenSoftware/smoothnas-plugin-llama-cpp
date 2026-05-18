@@ -38,6 +38,9 @@
 //	LLAMA_ARG_FIT               Optional llama.cpp fit mode. Appended as
 //	                             --fit unless already supplied.
 //
+//	LLAMA_ARG_REASONING_FORMAT  Optional reasoning extraction format. Appended
+//	                             as --reasoning-format unless supplied.
+//
 //	MODEL_URL                   Required model download URL. The wrapper
 //	                             downloads this into MODEL_PATH before
 //	                             starting llama-server.
@@ -705,6 +708,7 @@ func buildLlamaArgs(llamaPort string, passthrough []string, getenv envGetter) []
 	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_CACHE_TYPE_V", "--cache-type-v")
 	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_N_CPU_MOE", "--n-cpu-moe")
 	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_FIT", "--fit")
+	args = appendEnvArgIfMissing(args, getenv, "LLAMA_ARG_REASONING_FORMAT", "--reasoning-format")
 	args = append(args, speculativeArgs(getenv)...)
 	return args
 }
