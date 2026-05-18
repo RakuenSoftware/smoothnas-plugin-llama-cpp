@@ -41,18 +41,21 @@ CUDA and Vulkan manifests expose a `GPU` install-time field. Leave it
 automatic to use the default SmoothNAS GPU profile, or select a host GPU to
 narrow passthrough to that device.
 
-The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with Q8 KV cache:
+The default GPU runtime profile is Qwen3.6 35B-A3B Q5 with conservative
+first-run settings. Increase context, parallel slots, or the memory limit only
+after confirming the selected model fits the host and GPU:
 
 - `MODEL_URL=<https://.../*.gguf>`
-- `CTX_SIZE=524288` (total server context; with four slots this gives 128K per slot)
-- `PARALLEL_SLOTS=4`
+- `CTX_SIZE=32768`
+- `PARALLEL_SLOTS=1`
 - `N_GPU_LAYERS=999` on CUDA/Vulkan manifests
 - `LLAMA_ARG_TEMP=0.8`
-- `MEMORY_LIMIT=64GiB`
+- `MEMORY_LIMIT=32GiB`
 - `LLAMA_ARG_CACHE_TYPE_K=q8_0`
 - `LLAMA_ARG_CACHE_TYPE_V=q8_0`
 - `LLAMA_ARG_FLASH_ATTN=on`
 - `LLAMA_ARG_N_CPU_MOE=10` on CUDA/Vulkan manifests
+- `LLAMA_ARG_FIT=on` on CUDA/Vulkan manifests
 - `SPECULATIVE_MODE=none`
 
 Quantization is selected by the GGUF file itself. To use a different

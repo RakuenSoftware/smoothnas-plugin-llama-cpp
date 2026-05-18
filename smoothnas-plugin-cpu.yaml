@@ -63,17 +63,17 @@ config:
   - key: CTX_SIZE
     type: number
     label: Context window
-    default: '524288'
+    default: '32768'
     min: '1024'
     step: '1024'
     unit: tokens
     description: >-
-      Total server context in tokens. 524288 gives 128K per slot with the
-      default 4 request slots; CPU mode may need a smaller value.
+      Total server context in tokens. Increase after confirming the selected
+      model fits without exhausting host memory.
   - key: PARALLEL_SLOTS
     type: number
     label: Request slots
-    default: '4'
+    default: '1'
     min: '1'
     max: '16'
     step: '1'
@@ -81,7 +81,7 @@ config:
   - key: MEMORY_LIMIT
     type: string
     label: Container memory
-    default: 64GiB
+    default: 32GiB
     description: LXC memory limit for the llama.cpp container.
   - key: LLAMA_ARG_FLASH_ATTN
     type: select
