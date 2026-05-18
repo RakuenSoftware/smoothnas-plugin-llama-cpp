@@ -19,6 +19,8 @@ container:
     - ${CTX_SIZE}
     - '--parallel'
     - ${PARALLEL_SLOTS}
+    - '--reasoning-format'
+    - ${LLAMA_ARG_REASONING_FORMAT}
     - '--threads'
     - ${THREADS}
   restartPolicy: unless-stopped
@@ -109,6 +111,18 @@ config:
       - value: q5_0
       - value: q4_0
     description: KV cache V quantization. Q8 preserves quality.
+  - key: LLAMA_ARG_REASONING_FORMAT
+    type: select
+    label: Reasoning output format
+    default: auto
+    options:
+      - value: auto
+      - value: none
+      - value: deepseek
+      - value: deepseek-legacy
+    description: >-
+      Controls llama.cpp reasoning extraction. Use none to keep thinking in
+      message.content instead of emitting message.reasoning_content.
   - key: SPECULATIVE_MODE
     type: select
     label: Speculative decoding

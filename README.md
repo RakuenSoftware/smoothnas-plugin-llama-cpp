@@ -56,6 +56,7 @@ after confirming the selected model fits the host and GPU:
 - `LLAMA_ARG_FLASH_ATTN=on`
 - `LLAMA_ARG_N_CPU_MOE=10` on CUDA/Vulkan manifests
 - `LLAMA_ARG_FIT=on` on CUDA/Vulkan manifests
+- `LLAMA_ARG_REASONING_FORMAT=auto`
 - `SPECULATIVE_MODE=none`
 
 Quantization is selected by the GGUF file itself. To use a different
@@ -73,11 +74,11 @@ limits, draft probability thresholds, and draft KV cache types; CUDA and
 Vulkan variants additionally expose draft GPU layers and draft CPU MoE
 placement.
 
-For normal coding/completions against Qwen thinking models, pass
-`"chat_template_kwargs":{"enable_thinking":false}` per request when
-you want the answer in `message.content`. With thinking enabled,
-llama.cpp returns the model's reasoning stream separately as
-`reasoning_content`.
+For normal coding/completions against Qwen thinking models, set
+`LLAMA_ARG_REASONING_FORMAT=none` when clients cannot handle
+`message.reasoning_content`. This keeps llama.cpp from splitting the
+model's thinking stream into a separate response field; clients may still
+need to strip `<think>...</think>` blocks from `message.content`.
 
 Uninstall via the UI's Danger Zone removes the container, the cached image, the nginx route, and **the model files** (per the parent doc's all-or-none policy). Back up `/mnt/<tier>/.plugins/llama-cpp/models/` first if you care.
 

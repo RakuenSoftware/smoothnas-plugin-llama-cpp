@@ -337,6 +337,53 @@ func TestBuildLlamaArgs_DoesNotDuplicateMemorySafetyArgs(t *testing.T) {
 	}
 }
 
+func TestBuildLlamaArgs_AppendsReasoningFormat(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_REASONING_FORMAT": "none",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+		"--reasoning-format", "none",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_DoesNotDuplicateReasoningFormat(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_REASONING_FORMAT": "none",
+	}
+	got := buildLlamaArgs("8081", []string{
+		"--model", "/models/main.gguf",
+		"--reasoning-format=deepseek",
+	}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+		"--reasoning-format=deepseek",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_SkipsEmptyReasoningFormat(t *testing.T) {
+	env := map[string]string{
+		"LLAMA_ARG_REASONING_FORMAT": " ",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/main.gguf"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/main.gguf",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
 func TestAppendModelArgIfMissing(t *testing.T) {
 	got := appendModelArgIfMissing([]string{"--ctx-size", "4096"}, "/models/model.gguf")
 	want := []string{"--ctx-size", "4096", "--model", "/models/model.gguf"}
