@@ -77,11 +77,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker
-
       # GHCR rejects uppercase tags ("repository name must be lowercase").
       # The org slug is `RakuenSoftware` in github.repository, so we
       # lowercase the whole reference before passing it to Docker.
@@ -97,13 +92,11 @@ jobs:
             cd wrapper
             CGO_ENABLED=0 go build -ldflags="-s -w" -o ../smoothnas-wrapper .
           )
-          docker buildx build \
-            --load \
-            --build-arg "LLAMA_BACKEND=${{ matrix.variant.backend }}" \
-            --build-arg "LLAMA_BUILD_BASE=${{ matrix.variant.build_base }}" \
-            --build-arg "LLAMA_RUNTIME_BASE=${{ matrix.variant.runtime_base }}" \
-            -t "$ref" \
-            .
+          REF="$ref" \
+            LLAMA_BACKEND="${{ matrix.variant.backend }}" \
+            LLAMA_BUILD_BASE="${{ matrix.variant.build_base }}" \
+            LLAMA_RUNTIME_BASE="${{ matrix.variant.runtime_base }}" \
+            ./scripts/release-docker-commit.sh
           docker push "$ref" 2>&1 | tee docker-push.log
           digest="$(python3 - <<'EOF'
           import re
