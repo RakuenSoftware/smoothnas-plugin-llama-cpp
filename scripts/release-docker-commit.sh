@@ -115,6 +115,10 @@ stage_rootfs() {
   find "$src/llama.cpp/build" -name '*.so*' -exec cp -P {} "$rootfs/app/" \;
   cp "$src/llama.cpp/build/bin/llama-server" "$rootfs/app/llama-server"
   cp smoothnas-wrapper "$rootfs/usr/local/bin/smoothnas-wrapper"
+  if [[ -d /etc/ssl/certs ]]; then
+    mkdir -p "$rootfs/etc/ssl"
+    cp -a /etc/ssl/certs "$rootfs/etc/ssl/"
+  fi
 
   copy_runtime_closure
 
@@ -134,7 +138,7 @@ stage_rootfs() {
 commit_image() {
   cat > "$tmp/Dockerfile" <<'EOF'
 FROM scratch
-COPY rootfs/ /
+COPY rootfs/. /
 ENV LLAMA_BIN=/app/llama-server
 ENV LLAMA_PORT=8081
 ENV LISTEN_ADDR=:8080
