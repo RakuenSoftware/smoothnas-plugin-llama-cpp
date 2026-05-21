@@ -62,11 +62,9 @@ RUN if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
       test -x /usr/local/cuda/nvvm/bin/cicc; \
     fi
 
-WORKDIR /src
-RUN mkdir -p llama.cpp && \
-    curl -fsSL "${LLAMA_ARCHIVE_URL}" | tar -xz --strip-components=1 -C llama.cpp
-
+RUN mkdir -p /src/llama.cpp
 WORKDIR /src/llama.cpp
+RUN curl -fsSL "${LLAMA_ARCHIVE_URL}" | tar -xz --strip-components=1 -C .
 RUN set -eux; \
     case "${LLAMA_BACKEND}" in \
       cuda) \
