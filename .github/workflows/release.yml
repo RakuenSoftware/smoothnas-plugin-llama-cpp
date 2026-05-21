@@ -125,6 +125,20 @@ jobs:
           fi
           echo "$digest" > "digest-${{ matrix.variant.name }}.txt"
 
+      - name: Restore action node runtimes
+        if: always() && contains(matrix.variant.runs_on, 'self-hosted')
+        run: |
+          set -euo pipefail
+          for version in node20 node24; do
+            src="/usr/local/share/smoothnas-actions-node/${version}/bin/node"
+            dst="/home/runner/externals/${version}/bin/node"
+            if [ -x "$src" ] && [ ! -x "$dst" ]; then
+              mkdir -p "$(dirname "$dst")"
+              cp "$src" "$dst"
+              chmod +x "$dst"
+            fi
+          done
+
       - name: Upload digest artifact
         uses: actions/upload-artifact@v4
         with:

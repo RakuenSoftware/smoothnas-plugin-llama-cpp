@@ -25,15 +25,15 @@ trap cleanup EXIT
 
 case "$backend" in
   cuda)
-    build_deps="build-essential cmake git libssl-dev libgomp1 ca-certificates"
+    build_deps="binutils build-essential cmake git libssl-dev libgomp1 ca-certificates"
     runtime_deps="libgomp1 curl ca-certificates"
     ;;
   vulkan)
-    build_deps="gcc-14 g++-14 git build-essential cmake libssl-dev ca-certificates libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers"
+    build_deps="gcc-14 g++-14 binutils git build-essential cmake libssl-dev ca-certificates libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers"
     runtime_deps="libgomp1 curl ca-certificates libvulkan1 mesa-vulkan-drivers libglvnd0 libgl1 libglx0 libegl1 libgles2"
     ;;
   cpu)
-    build_deps="build-essential cmake git libssl-dev ca-certificates"
+    build_deps="binutils build-essential cmake git libssl-dev ca-certificates"
     runtime_deps="libgomp1 curl ca-certificates"
     ;;
   *)
@@ -233,7 +233,7 @@ EOF
   docker build -f "$tmp/Dockerfile" -t "$ref" "$tmp"
 }
 
-build_cuda_image() {
+build_docker_image() {
   docker build \
     --build-arg LLAMA_BACKEND="$backend" \
     --build-arg LLAMA_BUILD_BASE="$build_base" \
@@ -252,8 +252,8 @@ if [[ -z "$build_jobs" ]]; then
 fi
 echo "using build parallelism: $build_jobs"
 
-if [[ "$backend" == "cuda" ]]; then
-  build_cuda_image
+if [[ "$backend" == "cuda" || "$backend" == "vulkan" ]]; then
+  build_docker_image
   exit 0
 fi
 
