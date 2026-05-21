@@ -1,6 +1,6 @@
 name: release
 
-# Builds + publishes the three plugin variants on tag push.
+# Builds + publishes plugin variants on tag push.
 # Tag format is plain semver: v0.1.0, v0.1.1, v1.0.0-rc1, etc.
 #
 # Each variant is built from the single Dockerfile via backend-specific
@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, smoothnas]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -36,7 +36,9 @@ jobs:
 
   publish:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, smoothnas]
+    continue-on-error: ${{ matrix.variant.name == 'cuda' }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -111,7 +113,7 @@ jobs:
 
   release:
     needs: publish
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, smoothnas]
     steps:
       - uses: actions/checkout@v4
 
@@ -130,12 +132,16 @@ jobs:
           set -euo pipefail
           version="${{ steps.version.outputs.version }}"
           mkdir -p release
-          for variant in cuda vulkan cpu; do
+          found=0
+          for digest_file in digest-*.txt; do
+            [ -e "$digest_file" ] || continue
+            variant="${digest_file#digest-}"
+            variant="${variant%.txt}"
             src="smoothnas-plugin.yaml"
             if [ "$variant" != "cuda" ]; then
               src="smoothnas-plugin-${variant}.yaml"
             fi
-            digest="$(cat "digest-${variant}.txt")"
+            digest="$(cat "$digest_file")"
             if [ -z "$digest" ]; then
               echo "missing digest for $variant" >&2
               exit 1
@@ -182,23 +188,36 @@ jobs:
           with open(out, "w", encoding="utf-8") as f:
               f.write(manifest)
           EOF
+            found=$((found + 1))
           done
+          if [ "$found" -eq 0 ]; then
+            echo "no publish digests were downloaded" >&2
+            exit 1
+          fi
           ls -l release/
 
       - name: Render index.json
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          cat > release/index.json <<EOF
-          {
-            "plugin": "llama-cpp",
-            "version": "${VERSION}",
-            "variants": [
-              { "name": "cuda",   "manifest": "smoothnas-plugin.yaml",        "profile": "gpu-nvidia" },
-              { "name": "vulkan", "manifest": "smoothnas-plugin-vulkan.yaml", "profile": "gpu-amd" },
-              { "name": "cpu",    "manifest": "smoothnas-plugin-cpu.yaml",    "profile": "none" }
-            ]
+          python3 - <<'EOF'
+          import json
+          import os
+          from pathlib import Path
+
+          variants = []
+          release_dir = Path("release")
+          variant_meta = {
+              "cuda": ("smoothnas-plugin.yaml", "gpu-nvidia"),
+              "vulkan": ("smoothnas-plugin-vulkan.yaml", "gpu-amd"),
+              "cpu": ("smoothnas-plugin-cpu.yaml", "none"),
           }
+          for name, (manifest, profile) in variant_meta.items():
+              if (release_dir / manifest).exists():
+                  variants.append({"name": name, "manifest": manifest, "profile": profile})
+
+          index = {"plugin": "llama-cpp", "version": os.environ["VERSION"], "variants": variants}
+          (release_dir / "index.json").write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
           EOF
 
       # release-please created the GitHub release with its own
@@ -210,7 +229,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/smoothnas-plugin.yaml
-            release/smoothnas-plugin-vulkan.yaml
-            release/smoothnas-plugin-cpu.yaml
-            release/index.json
+            release/*
