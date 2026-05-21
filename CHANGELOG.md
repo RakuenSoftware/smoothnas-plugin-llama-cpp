@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.14](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.13...v0.7.14) (2026-05-21)
+
+
+### Bug Fixes
+
+* stabilize CUDA apt and split publish runners ([#100](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/100)) ([f14a82c](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/f14a82cbf7b1ac9067a2ea9229cf3711fc60067b))
+
 ## [0.7.13](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.12...v0.7.13) (2026-05-21)
 
 
