@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.15](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.14...v0.7.15) (2026-05-21)
+
+
+### Bug Fixes
+
+* install crane from pinned release archive ([#102](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/102)) ([bc68225](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/bc68225cea1c7c1fe12250af74fe876b3e6bd395))
+
 ## [0.7.14](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.13...v0.7.14) (2026-05-21)
 
 
