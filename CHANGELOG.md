@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.6](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.5...v0.6.6) (2026-05-21)
+
+
+### Bug Fixes
+
+* prebuild wrapper before docker lxc image builds ([c64038d](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/c64038dcd1bf83c1c0c517d3823a8bd0004048d8))
+
 ## [0.6.5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.4...v0.6.5) (2026-05-21)
 
 
