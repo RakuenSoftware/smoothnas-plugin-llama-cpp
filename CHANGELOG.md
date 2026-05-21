@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.13](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.12...v0.7.13) (2026-05-21)
+
+
+### Bug Fixes
+
+* harden CUDA archive extraction ([#98](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/98)) ([3117c51](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/3117c510a875f031f92162081260306f2e3f05fa))
+
 ## [0.7.12](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.11...v0.7.12) (2026-05-21)
 
 
