@@ -153,7 +153,14 @@ config:
     default: ''
     description: >-
       Gemma4 assistant GGUF path inside the container. With SPECULATIVE_MODE=mtp
-      this is passed as --mtp-head.
+      this is passed as --mtp-head. Leave empty when using SPEC_DRAFT_MODEL_URL.
+  - key: SPEC_DRAFT_MODEL_URL
+    type: string
+    label: MTP head download URL
+    default: ''
+    description: >-
+      Optional HTTP(S) URL for the Gemma4 assistant GGUF. When set, the wrapper
+      downloads it before startup and uses it as the --mtp-head model.
   - key: SPEC_DRAFT_BLOCK_SIZE
     type: number
     label: Draft block size

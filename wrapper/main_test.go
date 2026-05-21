@@ -781,6 +781,76 @@ func TestEnsureModelRequiresURL(t *testing.T) {
 	}
 }
 
+func TestEnsureDraftModelSkipsWhenURLMissing(t *testing.T) {
+	got, err := ensureDraftModelWithProgress(context.Background(), mapEnv(map[string]string{}), http.DefaultClient, nil)
+	if err != nil {
+		t.Fatalf("ensureDraftModelWithProgress: %v", err)
+	}
+	if got != "" {
+		t.Fatalf("draft path = %q want empty", got)
+	}
+}
+
+func TestEnsureDraftModelDownloadUsesDraftURLKeys(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		_, _ = io.WriteString(w, "GGUF-mtp")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	env := map[string]string{
+		"SPEC_DRAFT_MODEL_URL": srv.URL + "/mtp-head.gguf",
+	}
+	got, err := ensureModelAtPathWithProgress(
+		context.Background(),
+		srv.Client(),
+		env["SPEC_DRAFT_MODEL_URL"],
+		filepath.Join(dir, "mtp-head.gguf"),
+		"SPEC_DRAFT_MODEL_URL",
+		"SPEC_DRAFT_MODEL_PATH",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("ensureModelAtPathWithProgress: %v", err)
+	}
+	if !strings.HasSuffix(got, "mtp-head.gguf") {
+		t.Fatalf("draft path = %q want mtp-head.gguf suffix", got)
+	}
+	if hits != 1 {
+		t.Fatalf("hits = %d want 1", hits)
+	}
+	data, err := os.ReadFile(got)
+	if err != nil {
+		t.Fatalf("read draft model: %v", err)
+	}
+	if string(data) != "GGUF-mtp" {
+		t.Fatalf("draft model data = %q want GGUF-mtp", data)
+	}
+}
+
+func TestEnsureDraftModelUsesConfiguredPath(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "GGUF-mtp")
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	modelPath := filepath.Join(dir, "custom-mtp.gguf")
+	env := map[string]string{
+		"SPEC_DRAFT_MODEL_URL":  srv.URL + "/mtp-head.gguf",
+		"SPEC_DRAFT_MODEL_PATH": modelPath,
+	}
+	got, err := ensureDraftModelWithProgress(context.Background(), mapEnv(env), srv.Client(), nil)
+	if err != nil {
+		t.Fatalf("ensureDraftModelWithProgress: %v", err)
+	}
+	if got != modelPath {
+		t.Fatalf("draft path = %q want %q", got, modelPath)
+	}
+}
+
 func TestBuildLlamaArgs_GemmaMTP(t *testing.T) {
 	env := map[string]string{
 		"SPECULATIVE_MODE":          "mtp",
