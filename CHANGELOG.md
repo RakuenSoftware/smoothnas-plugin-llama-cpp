@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.10](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.9...v0.7.10) (2026-05-21)
+
+
+### Bug Fixes
+
+* install CUDA NVVM compiler bits ([#92](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/92)) ([295e245](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/295e245b4a8d9b1eaa5c39a0eb135325144e1157))
+
 ## [0.7.9](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.8...v0.7.9) (2026-05-21)
 
 
