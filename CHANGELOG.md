@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.13](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.12...v0.6.13) (2026-05-21)
+
+
+### Bug Fixes
+
+* package release image with scratch copy build ([#63](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/63)) ([60c6784](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/60c67849625103cd89e030063507e16b0d78c145))
+
 ## [0.6.12](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.11...v0.6.12) (2026-05-21)
 
 
