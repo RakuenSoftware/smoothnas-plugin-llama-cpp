@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.11](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.10...v0.6.11) (2026-05-21)
+
+
+### Bug Fixes
+
+* package release images without docker start ([#59](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/59)) ([0a42e13](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/0a42e13ec38b39eb4496c54a9cf5190f7bf40ccd))
+
 ## [0.6.10](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.9...v0.6.10) (2026-05-21)
 
 
