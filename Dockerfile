@@ -48,7 +48,7 @@ RUN set -eux; \
     apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 build-essential cmake curl libssl-dev libgomp1 ca-certificates \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y cmake curl libgomp1 ca-certificates \
           cuda-compiler-12-8 cuda-nvvm-12-8 && \
         apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y --reinstall \
           cuda-nvvm-12-8 cuda-nvcc-12-8 cuda-crt-12-8 ;; \
@@ -62,7 +62,7 @@ RUN set -eux; \
     esac && \
     rm -rf /var/tmp/apt /var/lib/apt/lists/*
 
-RUN if [[ "${LLAMA_BACKEND}" == "cuda" || "${LLAMA_BACKEND}" == "cpu" ]]; then \
+RUN if [[ "${LLAMA_BACKEND}" == "cuda" || "${LLAMA_BACKEND}" == "cpu" ]] && command -v gcc-14 >/dev/null && command -v g++-14 >/dev/null; then \
       update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 && \
       update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100; \
     fi
