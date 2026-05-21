@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.20](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.19...v0.7.20) (2026-05-21)
+
+
+### Bug Fixes
+
+* keep release control jobs on github runners ([#113](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/113)) ([29ffd40](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/29ffd40a34a65c667e63ce99243e09fea308d1dc))
+* serialize CUDA source extraction ([#112](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/112)) ([56be20c](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/56be20c7347e6c1b41a170684147b0c21308b482))
+
 ## [0.7.19](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.18...v0.7.19) (2026-05-21)
 
 
