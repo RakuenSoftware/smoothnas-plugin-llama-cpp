@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.26](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.25...v0.7.26) (2026-05-21)
+
+
+### Bug Fixes
+
+* install CUDA dev packages for release image ([#125](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/125)) ([cbb10ef](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/cbb10ef830ff305c54199127e1180bee9d35adea))
+
 ## [0.7.25](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.24...v0.7.25) (2026-05-21)
 
 
