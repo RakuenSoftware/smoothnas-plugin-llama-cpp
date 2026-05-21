@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.21](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.20...v0.7.21) (2026-05-21)
+
+
+### Bug Fixes
+
+* bootstrap dpkg state for CUDA base images ([#115](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/115)) ([0724743](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/0724743c7f040e7bba37abfcfa68e5aab38dd902))
+
 ## [0.7.20](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.19...v0.7.20) (2026-05-21)
 
 
