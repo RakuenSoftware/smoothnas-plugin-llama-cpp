@@ -37,6 +37,7 @@ RUN set -eux; \
     touch /var/lib/dpkg/status /var/lib/dpkg/available; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
+    rm -f /etc/apt/apt.conf.d/70debconf; \
     if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
       rm -f /etc/apt/sources.list.d/ubuntu.sources; \
       printf '%s\n' \
@@ -129,6 +130,7 @@ RUN set -eux; \
     touch /var/lib/dpkg/status /var/lib/dpkg/available; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
+    rm -f /etc/apt/apt.conf.d/70debconf; \
     if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
       rm -f /etc/apt/sources.list.d/ubuntu.sources; \
       printf '%s\n' \
