@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -440,6 +441,37 @@ func TestEnsureModelDownloadsAndCaches(t *testing.T) {
 	}
 	if hits != 1 {
 		t.Fatalf("cached ensureModel should not re-download, hits=%d", hits)
+	}
+}
+
+func TestInstallModelFileCopiesAcrossDevices(t *testing.T) {
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, ".model.download")
+	modelPath := filepath.Join(dir, "model.gguf")
+	if err := os.WriteFile(tmpPath, []byte("GGUF-data"), 0o640); err != nil {
+		t.Fatalf("write tmp model: %v", err)
+	}
+
+	oldRename := renameModelFile
+	renameModelFile = func(_, _ string) error {
+		return &os.LinkError{Op: "rename", Old: tmpPath, New: modelPath, Err: syscall.EXDEV}
+	}
+	defer func() {
+		renameModelFile = oldRename
+	}()
+
+	if err := installModelFile(tmpPath, modelPath); err != nil {
+		t.Fatalf("installModelFile: %v", err)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read installed model: %v", err)
+	}
+	if string(data) != "GGUF-data" {
+		t.Fatalf("installed model = %q", data)
+	}
+	if _, err := os.Stat(tmpPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tmp file stat err = %v, want not exist", err)
 	}
 }
 

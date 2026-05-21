@@ -587,7 +587,7 @@ func ensureModelAtPathWithProgress(ctx context.Context, client *http.Client, raw
 	if err := os.Chmod(tmpPath, 0o640); err != nil {
 		return "", fmt.Errorf("chmod model file: %w", err)
 	}
-	if err := os.Rename(tmpPath, modelPath); err != nil {
+	if err := installModelFile(tmpPath, modelPath); err != nil {
 		return "", fmt.Errorf("install model file: %w", err)
 	}
 	if err := os.WriteFile(markerPath, []byte(cacheKey+"\n"), 0o640); err != nil {
@@ -595,6 +595,51 @@ func ensureModelAtPathWithProgress(ctx context.Context, client *http.Client, raw
 	}
 	log.Printf("installed model %s from %s", modelPath, downloadURL)
 	return modelPath, nil
+}
+
+var renameModelFile = os.Rename
+
+func installModelFile(tmpPath, modelPath string) error {
+	if err := renameModelFile(tmpPath, modelPath); err == nil {
+		return nil
+	} else if !errors.Is(err, syscall.EXDEV) {
+		return err
+	}
+
+	if err := copyFile(tmpPath, modelPath, 0o640); err != nil {
+		_ = os.Remove(modelPath)
+		return err
+	}
+	if err := os.Remove(tmpPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+func copyFile(srcPath, dstPath string, mode os.FileMode) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("open source file: %w", err)
+	}
+	defer src.Close()
+
+	dst, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	if err != nil {
+		return fmt.Errorf("open destination file: %w", err)
+	}
+	_, copyErr := io.Copy(dst, src)
+	chmodErr := dst.Chmod(mode)
+	closeErr := dst.Close()
+	if copyErr != nil {
+		return fmt.Errorf("copy file: %w", copyErr)
+	}
+	if chmodErr != nil {
+		return fmt.Errorf("chmod destination file: %w", chmodErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close destination file: %w", closeErr)
+	}
+	return nil
 }
 
 func normalizeModelURL(rawURL, envKey string) (string, error) {
