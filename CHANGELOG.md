@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.23](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.22...v0.7.23) (2026-05-21)
+
+
+### Bug Fixes
+
+* disable apt preconfigure in release images ([#119](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/119)) ([85bb046](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/85bb04699a8519c9d1ce73477d986bba30c77e37))
+
 ## [0.7.22](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.21...v0.7.22) (2026-05-21)
 
 
