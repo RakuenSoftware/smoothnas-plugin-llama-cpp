@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.8](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.7...v0.7.8) (2026-05-21)
+
+
+### Bug Fixes
+
+* point CUDA Docker build at CMake modules ([#88](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/88)) ([9652f23](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/9652f237193b0e2e23e53de09d9465fb850736d1))
+
 ## [0.7.7](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.6...v0.7.7) (2026-05-21)
 
 
