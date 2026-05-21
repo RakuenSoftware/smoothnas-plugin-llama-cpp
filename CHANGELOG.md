@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.0...v0.6.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* set self-hosted runner Go cache ([#39](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/39)) ([c4ac4d5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/c4ac4d5a4aa274a9f853c933c69b72c568724cad))
+
 ## [0.6.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.5.0...v0.6.0) (2026-05-21)
 
 
