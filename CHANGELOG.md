@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.16...v0.7.0) (2026-05-21)
+
+
+### Features
+
+* support Qwen3.6 NextN TurboQuant ([2f4a8ec](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/2f4a8ec827e5a34ddd64c01148222109a16c9b41))
+* support Qwen3.6 NextN TurboQuant ([df763ca](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/df763cabbafbbd04ac54fcfa13ba0c04f0a7f609))
+
 ## [0.6.16](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.15...v0.6.16) (2026-05-21)
 
 
