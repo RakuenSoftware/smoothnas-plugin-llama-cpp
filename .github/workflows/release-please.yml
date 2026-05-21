@@ -15,6 +15,9 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  HOME: /home/runner
+
 jobs:
   release-please:
     runs-on: [self-hosted, Linux, X64, smoothnas]

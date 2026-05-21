@@ -20,6 +20,11 @@ permissions:
   contents: write   # gh release create
   packages: write   # ghcr.io push
 
+env:
+  HOME: /home/runner
+  GOCACHE: /home/runner/.cache/go-build
+  GOMODCACHE: /home/runner/go/pkg/mod
+
 jobs:
   test:
     runs-on: [self-hosted, Linux, X64, smoothnas]
