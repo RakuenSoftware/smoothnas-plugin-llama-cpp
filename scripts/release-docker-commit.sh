@@ -132,16 +132,17 @@ stage_rootfs() {
 }
 
 commit_image() {
-  tar -C "$rootfs" -cf "$tmp/rootfs.tar" .
-  docker import \
-    --change 'ENV LLAMA_BIN=/app/llama-server' \
-    --change 'ENV LLAMA_PORT=8081' \
-    --change 'ENV LISTEN_ADDR=:8080' \
-    --change 'ENV LD_LIBRARY_PATH=/app:/usr/local/lib:/usr/lib/x86_64-linux-gnu' \
-    --change 'EXPOSE 8080' \
-    --change 'ENTRYPOINT ["/usr/local/bin/smoothnas-wrapper"]' \
-    "$tmp/rootfs.tar" \
-    "$ref"
+  cat > "$tmp/Dockerfile" <<'EOF'
+FROM scratch
+COPY rootfs/ /
+ENV LLAMA_BIN=/app/llama-server
+ENV LLAMA_PORT=8081
+ENV LISTEN_ADDR=:8080
+ENV LD_LIBRARY_PATH=/app:/usr/local/lib:/usr/lib/x86_64-linux-gnu
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/smoothnas-wrapper"]
+EOF
+  docker build -f "$tmp/Dockerfile" -t "$ref" "$tmp"
 }
 
 install_runner_deps
