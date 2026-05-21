@@ -46,6 +46,43 @@ install_runner_deps() {
   apt_get clean -y
 }
 
+ensure_cxx_toolchain() {
+  local cc cxx cc1plus cc1plus_dir major
+
+  cc="$(command -v gcc || true)"
+  cxx="$(command -v g++ || true)"
+  if [[ -z "$cc" || -z "$cxx" ]]; then
+    apt_get update
+    apt_get install -y build-essential g++
+    cc="$(command -v gcc || true)"
+    cxx="$(command -v g++ || true)"
+  fi
+  if [[ -z "$cc" || -z "$cxx" ]]; then
+    echo "gcc/g++ are not available after installing build dependencies" >&2
+    return 1
+  fi
+
+  cc1plus="$("$cxx" -print-prog-name=cc1plus)"
+  if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
+    major="$("$cxx" -dumpversion | cut -d. -f1)"
+    apt_get update
+    apt_get install --reinstall -y "g++" "g++-${major}" "g++-${major}-x86-64-linux-gnu" || apt_get install --reinstall -y g++
+    cc1plus="$("$cxx" -print-prog-name=cc1plus)"
+  fi
+  if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
+    echo "cc1plus is not available to $cxx" >&2
+    "$cxx" -v >&2 || true
+    return 1
+  fi
+
+  cc1plus_dir="$(dirname "$cc1plus")"
+  export CC="$cc"
+  export CXX="$cxx"
+  export COMPILER_PATH="${cc1plus_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
+  printf 'int main() { return 0; }\n' > "$tmp/cxx-sanity.cpp"
+  "$CXX" "$tmp/cxx-sanity.cpp" -o "$tmp/cxx-sanity"
+}
+
 apt_get() {
   if [[ "$(id -u)" -eq 0 ]]; then
     apt-get "$@"
@@ -197,6 +234,7 @@ if [[ "$backend" == "cuda" ]]; then
 fi
 
 install_runner_deps
+ensure_cxx_toolchain
 build_llama
 stage_rootfs
 commit_image
