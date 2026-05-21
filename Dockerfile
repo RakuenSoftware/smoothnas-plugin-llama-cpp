@@ -33,6 +33,8 @@ RUN set -eux; \
     fi; \
     chmod 666 /dev/null /dev/random /dev/urandom; \
     mkdir -p /tmp /var/tmp /var/tmp/apt/lists/partial /var/tmp/apt/archives/partial; \
+    mkdir -p /var/lib/dpkg/updates /var/lib/dpkg/info /var/lib/dpkg/parts /var/lib/dpkg/triggers; \
+    touch /var/lib/dpkg/status /var/lib/dpkg/available; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
     if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
@@ -123,6 +125,8 @@ RUN set -eux; \
     fi; \
     chmod 666 /dev/null /dev/random /dev/urandom; \
     mkdir -p /tmp /var/tmp /var/tmp/apt/lists/partial /var/tmp/apt/archives/partial; \
+    mkdir -p /var/lib/dpkg/updates /var/lib/dpkg/info /var/lib/dpkg/parts /var/lib/dpkg/triggers; \
+    touch /var/lib/dpkg/status /var/lib/dpkg/available; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
     if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
