@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.4...v0.7.5) (2026-05-21)
+
+
+### Bug Fixes
+
+* fetch llama source as archive in Dockerfile ([#82](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/82)) ([d125ce4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/d125ce40ae629992e4ed36cdeb034b9fe0c457c6))
+
 ## [0.7.4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.3...v0.7.4) (2026-05-21)
 
 
