@@ -18,7 +18,13 @@ ARG CUDA_DOCKER_ARCH=default
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update && \
+RUN set -eux; \
+    if [[ ! -c /dev/null ]]; then \
+      rm -f /dev/null; \
+      mknod -m 666 /dev/null c 1 3 || touch /dev/null; \
+    fi; \
+    chmod 666 /dev/null; \
+    apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
         apt-get install -y gcc-14 g++-14 build-essential cmake git libssl-dev libgomp1 ca-certificates ;; \
@@ -81,7 +87,13 @@ ARG LLAMA_BACKEND=cpu
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update && \
+RUN set -eux; \
+    if [[ ! -c /dev/null ]]; then \
+      rm -f /dev/null; \
+      mknod -m 666 /dev/null c 1 3 || touch /dev/null; \
+    fi; \
+    chmod 666 /dev/null; \
+    apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
         apt-get install -y libgomp1 curl ca-certificates ;; \
