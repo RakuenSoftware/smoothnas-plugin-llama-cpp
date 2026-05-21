@@ -41,7 +41,6 @@ jobs:
   publish:
     needs: test
     runs-on: [self-hosted, Linux, X64, smoothnas]
-    continue-on-error: ${{ matrix.variant.name == 'cuda' }}
     timeout-minutes: 25
     strategy:
       fail-fast: false
