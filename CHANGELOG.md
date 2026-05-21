@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.16](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.15...v0.6.16) (2026-05-21)
+
+
+### Bug Fixes
+
+* package Vulkan ICD libraries ([3c66368](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/3c6636884d6ec0d01cf0e8c58d20e814d0bd3959))
+* package Vulkan ICD libraries ([37a4072](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/37a4072a1c366c3b93aa0f6b3ee235c40e13c1be))
+
 ## [0.6.15](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.14...v0.6.15) (2026-05-21)
 
 
