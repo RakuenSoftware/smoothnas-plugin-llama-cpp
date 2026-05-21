@@ -136,6 +136,13 @@ stage_rootfs() {
       mkdir -p "$rootfs/usr/share"
       cp -a /usr/share/vulkan "$rootfs/usr/share/"
     fi
+    shopt -s nullglob
+    local vulkan_libs=(/usr/lib/x86_64-linux-gnu/libvulkan_*.so /usr/lib/x86_64-linux-gnu/libVkLayer_*.so)
+    if ((${#vulkan_libs[@]})); then
+      mkdir -p "$rootfs/usr/lib/x86_64-linux-gnu"
+      cp -a "${vulkan_libs[@]}" "$rootfs/usr/lib/x86_64-linux-gnu/"
+    fi
+    shopt -u nullglob
     if [[ -d /usr/lib/x86_64-linux-gnu/dri ]]; then
       mkdir -p "$rootfs/usr/lib/x86_64-linux-gnu"
       cp -a /usr/lib/x86_64-linux-gnu/dri "$rootfs/usr/lib/x86_64-linux-gnu/"
