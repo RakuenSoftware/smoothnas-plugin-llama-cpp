@@ -32,15 +32,18 @@ RUN set -eux; \
       mknod -m 666 /dev/urandom c 1 9; \
     fi; \
     chmod 666 /dev/null /dev/random /dev/urandom; \
+    mkdir -p /tmp /var/tmp; \
+    chmod 1777 /tmp /var/tmp; \
+    export TMPDIR=/var/tmp; \
     apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get install -y gcc-14 g++-14 build-essential cmake curl git libssl-dev libgomp1 ca-certificates ;; \
+        apt-get install -y gcc-14 g++-14 build-essential cmake curl libssl-dev libgomp1 ca-certificates ;; \
       vulkan) \
-        apt-get install -y curl git build-essential cmake libssl-dev ca-certificates \
+        apt-get install -y curl build-essential cmake libssl-dev ca-certificates \
           libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
       cpu) \
-        apt-get install -y gcc-14 g++-14 build-essential cmake curl git libssl-dev ca-certificates ;; \
+        apt-get install -y gcc-14 g++-14 build-essential cmake curl libssl-dev ca-certificates ;; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
@@ -99,6 +102,9 @@ RUN set -eux; \
       mknod -m 666 /dev/urandom c 1 9; \
     fi; \
     chmod 666 /dev/null /dev/random /dev/urandom; \
+    mkdir -p /tmp /var/tmp; \
+    chmod 1777 /tmp /var/tmp; \
+    export TMPDIR=/var/tmp; \
     apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
