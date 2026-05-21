@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.22](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.21...v0.7.22) (2026-05-21)
+
+
+### Bug Fixes
+
+* disable wrapper VCS stamping in release builds ([#117](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/117)) ([9f97995](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/9f979957d2cbbbf094cea9fa835796d5c970a76b))
+
 ## [0.7.21](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.20...v0.7.21) (2026-05-21)
 
 
