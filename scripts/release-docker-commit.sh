@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+
 ref="${REF:?REF is required}"
 backend="${LLAMA_BACKEND:?LLAMA_BACKEND is required}"
 build_base="${LLAMA_BUILD_BASE:?LLAMA_BUILD_BASE is required}"
