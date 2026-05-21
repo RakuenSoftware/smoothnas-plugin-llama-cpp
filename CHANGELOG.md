@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.11](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.10...v0.7.11) (2026-05-21)
+
+
+### Bug Fixes
+
+* stabilize Dockerfile apt state ([#94](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/94)) ([060f2af](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/060f2afed0ce848ddd5c3aa0fde4cec1884f34d6))
+
 ## [0.7.10](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.9...v0.7.10) (2026-05-21)
 
 
