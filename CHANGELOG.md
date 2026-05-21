@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.9](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.8...v0.7.9) (2026-05-21)
+
+
+### Bug Fixes
+
+* keep CUDA apt temp files off /tmp ([#90](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/90)) ([ee352ef](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/ee352ef82b1f84fffb09daf8222c43ce228e0f5c))
+
 ## [0.7.8](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.7...v0.7.8) (2026-05-21)
 
 
