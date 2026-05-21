@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.15](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.14...v0.6.15) (2026-05-21)
+
+
+### Bug Fixes
+
+* build release backend libraries ([#68](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/68)) ([de6cbf5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/de6cbf5c67907219ae6906d868e67e8d71605b17))
+* package release rootfs contents ([#67](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/67)) ([df132bf](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/df132bf9093b1f273720aa760b19dae901b1b52d))
+
 ## [0.6.14](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.13...v0.6.14) (2026-05-21)
 
 
