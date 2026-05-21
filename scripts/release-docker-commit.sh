@@ -41,9 +41,20 @@ esac
 
 install_runner_deps() {
   export DEBIAN_FRONTEND=noninteractive
-  apt-get update
-  apt-get install -y $build_deps $runtime_deps
-  apt-get clean -y
+  apt_get update
+  apt_get install -y $build_deps $runtime_deps
+  apt_get clean -y
+}
+
+apt_get() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    apt-get "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo apt-get "$@"
+  else
+    echo "apt-get requires root or sudo" >&2
+    return 1
+  fi
 }
 
 build_llama() {
