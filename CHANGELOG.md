@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.3...v0.7.4) (2026-05-21)
+
+
+### Bug Fixes
+
+* create random devices in docker builds ([#80](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/80)) ([89f911b](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/89f911bf221a736ae3c70b38ebae9619667b3380))
+
 ## [0.7.3](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.2...v0.7.3) (2026-05-21)
 
 
