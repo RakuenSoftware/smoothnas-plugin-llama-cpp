@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.3...v0.5.0) (2026-05-21)
+
+
+### Features
+
+* add Gemma4 MTP TurboQuant support ([#34](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/34)) ([5c34171](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/5c3417116ddd025d560bdd3398fe19e04ee2e590))
+
 ## [0.4.3](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.2...v0.4.3) (2026-05-18)
 
 
