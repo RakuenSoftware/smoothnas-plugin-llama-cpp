@@ -3,8 +3,8 @@ name: release
 # Builds + publishes the three plugin variants on tag push.
 # Tag format is plain semver: v0.1.0, v0.1.1, v1.0.0-rc1, etc.
 #
-# Each variant is built from the single Dockerfile via the
-# LLAMA_BASE build-arg. The pushed-image digest is read back from
+# Each variant is built from the single Dockerfile via backend-specific
+# build args. The pushed-image digest is read back from
 # buildx output and spliced into the matching manifest's
 # artifact.image before the manifests are attached to the GitHub
 # release. Operators downloading the manifests get a digest-pinned
@@ -41,9 +41,18 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          - { name: cuda,   base: ghcr.io/ggml-org/llama.cpp:server-cuda }
-          - { name: vulkan, base: ghcr.io/ggml-org/llama.cpp:server-vulkan }
-          - { name: cpu,    base: ghcr.io/ggml-org/llama.cpp:server }
+          - name: cuda
+            backend: cuda
+            build_base: nvidia/cuda:12.8.1-devel-ubuntu24.04
+            runtime_base: nvidia/cuda:12.8.1-runtime-ubuntu24.04
+          - name: vulkan
+            backend: vulkan
+            build_base: ubuntu:26.04
+            runtime_base: ubuntu:26.04
+          - name: cpu
+            backend: cpu
+            build_base: ubuntu:24.04
+            runtime_base: ubuntu:24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -77,7 +86,9 @@ jobs:
           tags: |
             ${{ steps.image.outputs.ref }}
           build-args: |
-            LLAMA_BASE=${{ matrix.variant.base }}
+            LLAMA_BACKEND=${{ matrix.variant.backend }}
+            LLAMA_BUILD_BASE=${{ matrix.variant.build_base }}
+            LLAMA_RUNTIME_BASE=${{ matrix.variant.runtime_base }}
           # buildx pushes a manifest list; the digest output here is
           # the index digest, which is what we pin in the manifest.
           provenance: false

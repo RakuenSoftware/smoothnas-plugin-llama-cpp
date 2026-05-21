@@ -1,45 +1,116 @@
 # SmoothNAS plugin: llama.cpp with bearer-auth wrapper.
 #
-# Builds three variants from one Dockerfile via LLAMA_BASE — CI's
-# release workflow renders three tags (cuda / vulkan / cpu) by passing
-# the matching upstream image tag.
-#
-# The wrapper is a tiny Go binary built in a separate stage so the
-# final image carries only the upstream layers + one statically-
-# linked binary.
+# The final image carries a SmoothNAS auth wrapper plus a llama-server
+# built from the AtomicBot TurboQuant/MTP fork. Stock upstream llama.cpp
+# does not currently expose the Gemma 4 MTP assistant path or TurboQuant
+# KV cache types needed by this plugin.
 
-# Override LLAMA_BASE in the build args to pick a variant. Docker only
-# allows FROM to see ARG values declared before the stage starts.
-ARG LLAMA_BASE=ghcr.io/ggml-org/llama.cpp:server
+ARG LLAMA_BUILD_BASE=ubuntu:24.04
+ARG LLAMA_RUNTIME_BASE=ubuntu:24.04
 
 # --- wrapper build ---
 FROM golang:1.25-alpine AS wrapper-build
 WORKDIR /src
 COPY wrapper/go.mod wrapper/main.go ./
-# CGO off + static link so the binary runs on any of the upstream
-# llama.cpp base images regardless of glibc/musl differences.
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /smoothnas-wrapper .
 
-# --- final image ---
-# Pinned tags are written into the manifests by the release workflow
-# before publishing, so operators always install a known-good
-# combination.
-FROM ${LLAMA_BASE}
+# --- llama.cpp build ---
+FROM ${LLAMA_BUILD_BASE} AS llama-build
 
+ARG LLAMA_BACKEND=cpu
+ARG LLAMA_REPO=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git
+ARG LLAMA_REF=0a635dcd92ba66c75fccfef91c3e106f4668f367
+ARG CUDA_DOCKER_ARCH=default
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update && \
+    case "${LLAMA_BACKEND}" in \
+      cuda) \
+        apt-get install -y gcc-14 g++-14 build-essential cmake git libssl-dev libgomp1 ca-certificates ;; \
+      vulkan) \
+        apt-get install -y git build-essential cmake libssl-dev ca-certificates \
+          libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
+      cpu) \
+        apt-get install -y gcc-14 g++-14 build-essential cmake git libssl-dev ca-certificates ;; \
+      *) \
+        echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
+    esac && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN if [[ "${LLAMA_BACKEND}" == "cuda" || "${LLAMA_BACKEND}" == "cpu" ]]; then \
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 && \
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100; \
+    fi
+
+WORKDIR /src
+RUN git clone --depth 1 "${LLAMA_REPO}" llama.cpp && \
+    cd llama.cpp && \
+    git fetch --depth 1 origin "${LLAMA_REF}" && \
+    git checkout --detach "${LLAMA_REF}"
+
+WORKDIR /src/llama.cpp
+RUN set -eux; \
+    cmake_args=( \
+      -S . \
+      -B build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DGGML_NATIVE=OFF \
+      -DGGML_BACKEND_DL=ON \
+      -DGGML_CPU_ALL_VARIANTS=ON \
+      -DLLAMA_BUILD_TESTS=OFF \
+    ); \
+    case "${LLAMA_BACKEND}" in \
+      cuda) \
+        if [[ "${CUDA_DOCKER_ARCH}" != "default" ]]; then \
+          cmake_args+=("-DCMAKE_CUDA_ARCHITECTURES=${CUDA_DOCKER_ARCH}"); \
+        fi; \
+        cmake_args+=(-DGGML_CUDA=ON -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined); \
+        ;; \
+      vulkan) \
+        cmake_args+=(-DGGML_VULKAN=ON); \
+        ;; \
+      cpu) \
+        ;; \
+    esac; \
+    cmake "${cmake_args[@]}"; \
+    cmake --build build --config Release -j"$(nproc)"
+
+RUN mkdir -p /out/lib /out/bin && \
+    find build -name "*.so*" -exec cp -P {} /out/lib \; && \
+    cp build/bin/llama-server /out/bin/llama-server
+
+# --- final image ---
+FROM ${LLAMA_RUNTIME_BASE}
+
+ARG LLAMA_BACKEND=cpu
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update && \
+    case "${LLAMA_BACKEND}" in \
+      cuda) \
+        apt-get install -y libgomp1 curl ca-certificates ;; \
+      vulkan) \
+        apt-get install -y libgomp1 curl ca-certificates libvulkan1 mesa-vulkan-drivers \
+          libglvnd0 libgl1 libglx0 libegl1 libgles2 ;; \
+      cpu) \
+        apt-get install -y libgomp1 curl ca-certificates ;; \
+      *) \
+        echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
+    esac && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
+    rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
+
+COPY --from=llama-build /out/lib/ /app/
+COPY --from=llama-build /out/bin/llama-server /app/llama-server
 COPY --from=wrapper-build /smoothnas-wrapper /usr/local/bin/smoothnas-wrapper
 
-# llama-server lives at /app/llama-server in the upstream image; the
-# wrapper finds it via $LLAMA_BIN. Override at runtime if upstream
-# changes the path.
 ENV LLAMA_BIN=/app/llama-server
 ENV LLAMA_PORT=8081
 ENV LISTEN_ADDR=:8080
 
-# The container listens on 8080; SmoothNAS' nginx route proxies
-# here. Upstream llama-server stays on loopback.
 EXPOSE 8080
 
-# The wrapper exec's llama-server itself; passes any extra args
-# through. SmoothNAS sets the manifest's container.command, which
-# becomes our argv past program name.
 ENTRYPOINT ["/usr/local/bin/smoothnas-wrapper"]
