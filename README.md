@@ -92,6 +92,7 @@ Uninstall via the UI's Danger Zone removes the container, the cached image, the 
 cd wrapper && go build ./... && go test ./...
 
 # image build (any variant)
+CGO_ENABLED=0 go -C wrapper build -ldflags="-s -w" -o ../smoothnas-wrapper .
 docker build \
   --build-arg LLAMA_BACKEND=cuda \
   --build-arg LLAMA_BUILD_BASE=nvidia/cuda:12.8.1-devel-ubuntu24.04 \
