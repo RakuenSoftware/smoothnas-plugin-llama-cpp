@@ -20,7 +20,7 @@ env:
 
 jobs:
   release-please:
-    runs-on: [self-hosted, Linux, X64, smoothnas]
+    runs-on: ubuntu-latest
     steps:
       - id: release
         uses: googleapis/release-please-action@v4

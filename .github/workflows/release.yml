@@ -26,7 +26,7 @@ env:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux, X64, smoothnas]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -129,7 +129,7 @@ jobs:
 
   release:
     needs: publish
-    runs-on: [self-hosted, Linux, X64, smoothnas]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
