@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.29](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.28...v0.7.29) (2026-05-21)
+
+
+### Bug Fixes
+
+* set self-hosted publish path and jobs ([#131](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/131)) ([de03fcc](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/de03fcc2f16894991f8f64f7fbb5b81560c7c13a))
+
 ## [0.7.28](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.27...v0.7.28) (2026-05-21)
 
 
