@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.4...v0.6.5) (2026-05-21)
+
+
+### Bug Fixes
+
+* set go env in docker lxc builds ([62f27d7](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/62f27d7439475e15cd8160d4f733afdd7ee08f69))
+
 ## [0.6.4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.3...v0.6.4) (2026-05-21)
 
 
