@@ -43,7 +43,7 @@ RUN set -eux; \
       printf '%s\n' \
         'Types: deb' \
         'URIs: http://archive.ubuntu.com/ubuntu/' \
-        'Suites: noble' \
+        'Suites: noble noble-updates noble-security' \
         'Components: main universe restricted multiverse' \
         'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
         > /etc/apt/sources.list.d/ubuntu-main.sources; \
