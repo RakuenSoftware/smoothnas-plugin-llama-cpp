@@ -53,8 +53,8 @@ jobs:
             runtime_base: nvidia/cuda:12.8.1-runtime-ubuntu24.04
           - name: vulkan
             backend: vulkan
-            build_base: ubuntu:26.04
-            runtime_base: ubuntu:26.04
+            build_base: ubuntu:24.04
+            runtime_base: ubuntu:24.04
           - name: cpu
             backend: cpu
             build_base: ubuntu:24.04
