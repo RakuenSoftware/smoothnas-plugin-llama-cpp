@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.19](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.18...v0.7.19) (2026-05-21)
+
+
+### Bug Fixes
+
+* extract CUDA source in one layer ([#110](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/110)) ([d45e789](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/d45e7895b202252ec84b12ec262621b1ba070c0d))
+
 ## [0.7.18](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.17...v0.7.18) (2026-05-21)
 
 
