@@ -103,7 +103,7 @@ jobs:
           ref="${{ steps.image.outputs.ref }}"
           (
             cd wrapper
-            CGO_ENABLED=0 go build -ldflags="-s -w" -o ../smoothnas-wrapper .
+            CGO_ENABLED=0 go build -buildvcs=false -ldflags="-s -w" -o ../smoothnas-wrapper .
           )
           REF="$ref" \
             LLAMA_BACKEND="${{ matrix.variant.backend }}" \
