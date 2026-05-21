@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.5.0...v0.6.0) (2026-05-21)
+
+
+### Features
+
+* download MTP head GGUF ([#36](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/36)) ([39ca3e5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/39ca3e554f10e93dd5c27dff7aa67bd79705a9f1))
+
+
+### Bug Fixes
+
+* use self-hosted release runners ([#38](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/38)) ([fb5392f](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/fb5392fbc8c82e4ca35855f97c98bd4afec23e2d))
+
 ## [0.5.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.4.3...v0.5.0) (2026-05-21)
 
 
