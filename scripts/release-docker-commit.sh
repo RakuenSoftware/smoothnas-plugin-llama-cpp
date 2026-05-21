@@ -74,7 +74,7 @@ build_llama() {
     esac
 
     cmake "${cmake_args[@]}"
-    cmake --build build --config Release -j"$(nproc)"
+    cmake --build build --config Release --target llama-server -j"$(nproc)"
   )
 }
 
@@ -88,10 +88,12 @@ copy_one_lib() {
 
 copy_ldd_deps() {
   local target="$1"
-  ldd "$target" 2>/dev/null | awk '
+  local deps
+  deps="$(ldd "$target" 2>/dev/null || true)"
+  awk '
     /=> \// { print $3 }
     /^\// { print $1 }
-  ' | sort -u | while read -r lib; do
+  ' <<<"$deps" | sort -u | while read -r lib; do
     copy_one_lib "$lib"
   done
 }
