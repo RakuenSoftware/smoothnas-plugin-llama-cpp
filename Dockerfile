@@ -34,12 +34,12 @@ RUN set -eux; \
     apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get install -y gcc-14 g++-14 build-essential cmake git libssl-dev libgomp1 ca-certificates ;; \
+        apt-get install -y gcc-14 g++-14 build-essential cmake curl git libssl-dev libgomp1 ca-certificates ;; \
       vulkan) \
-        apt-get install -y git build-essential cmake libssl-dev ca-certificates \
+        apt-get install -y curl git build-essential cmake libssl-dev ca-certificates \
           libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
       cpu) \
-        apt-get install -y gcc-14 g++-14 build-essential cmake git libssl-dev ca-certificates ;; \
+        apt-get install -y gcc-14 g++-14 build-essential cmake curl git libssl-dev ca-certificates ;; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
@@ -51,10 +51,9 @@ RUN if [[ "${LLAMA_BACKEND}" == "cuda" || "${LLAMA_BACKEND}" == "cpu" ]]; then \
     fi
 
 WORKDIR /src
-RUN git clone --depth 1 "${LLAMA_REPO}" llama.cpp && \
-    cd llama.cpp && \
-    git fetch --depth 1 origin "${LLAMA_REF}" && \
-    git checkout --detach "${LLAMA_REF}"
+RUN mkdir -p llama.cpp && \
+    archive_url="${LLAMA_REPO%.git}/archive/${LLAMA_REF}.tar.gz" && \
+    curl -fsSL "$archive_url" | tar -xz --strip-components=1 -C llama.cpp
 
 WORKDIR /src/llama.cpp
 RUN set -eux; \
