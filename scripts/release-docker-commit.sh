@@ -5,7 +5,7 @@ ref="${REF:?REF is required}"
 backend="${LLAMA_BACKEND:?LLAMA_BACKEND is required}"
 runtime_base="${LLAMA_RUNTIME_BASE:?LLAMA_RUNTIME_BASE is required}"
 llama_repo="${LLAMA_REPO:-https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git}"
-llama_ref="${LLAMA_REF:-0a635dcd92ba66c75fccfef91c3e106f4668f367}"
+llama_ref="${LLAMA_REF:-24cabf4d08d460cfb6e73fa308a15b34e2b04600}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 
 suffix="${GITHUB_RUN_ID:-manual}-${backend}-$$"

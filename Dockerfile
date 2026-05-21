@@ -1,9 +1,8 @@
 # SmoothNAS plugin: llama.cpp with bearer-auth wrapper.
 #
 # The final image carries a SmoothNAS auth wrapper plus a llama-server
-# built from the AtomicBot TurboQuant/MTP fork. Stock upstream llama.cpp
-# does not currently expose the Gemma 4 MTP assistant path or TurboQuant
-# KV cache types needed by this plugin.
+# built from the AtomicBot TurboQuant/MTP fork. This carries TurboQuant
+# KV cache types plus Qwen3.6 built-in MTP/NextN support.
 
 ARG LLAMA_BUILD_BASE=ubuntu:24.04
 ARG LLAMA_RUNTIME_BASE=ubuntu:24.04
@@ -13,7 +12,7 @@ FROM ${LLAMA_BUILD_BASE} AS llama-build
 
 ARG LLAMA_BACKEND=cpu
 ARG LLAMA_REPO=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git
-ARG LLAMA_REF=0a635dcd92ba66c75fccfef91c3e106f4668f367
+ARG LLAMA_REF=24cabf4d08d460cfb6e73fa308a15b34e2b04600
 ARG CUDA_DOCKER_ARCH=default
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
