@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.12](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.11...v0.6.12) (2026-05-21)
+
+
+### Bug Fixes
+
+* tolerate static files in release packaging ([#61](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/61)) ([25526c0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/25526c04fd314e2c5465e88e0eb453a3b3d8bfdc))
+
 ## [0.6.11](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.10...v0.6.11) (2026-05-21)
 
 
