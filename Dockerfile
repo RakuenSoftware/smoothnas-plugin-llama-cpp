@@ -52,17 +52,17 @@ RUN set -eux; \
     apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 build-essential cmake cmake-data curl libgomp1 ca-certificates \
+        apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 binutils build-essential cmake cmake-data curl libgomp1 ca-certificates \
           cuda-compiler-12-8 cuda-nvvm-12-8 cuda-cudart-dev-12-8 cuda-driver-dev-12-8 && \
         curl --retry 5 --retry-delay 2 -fsSLo /var/tmp/cuda-crt-12-8.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-crt-12-8_12.8.93-1_amd64.deb && \
         curl --retry 5 --retry-delay 2 -fsSLo /var/tmp/cuda-nvvm-12-8.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-nvvm-12-8_12.8.93-1_amd64.deb && \
         curl --retry 5 --retry-delay 2 -fsSLo /var/tmp/cuda-nvcc-12-8.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-nvcc-12-8_12.8.93-1_amd64.deb && \
         dpkg -i /var/tmp/cuda-crt-12-8.deb /var/tmp/cuda-nvvm-12-8.deb /var/tmp/cuda-nvcc-12-8.deb ;; \
       vulkan) \
-        apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y curl build-essential cmake libssl-dev ca-certificates \
+        apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y curl binutils build-essential cmake libssl-dev ca-certificates \
           libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
       cpu) \
-        apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 build-essential cmake curl libssl-dev ca-certificates ;; \
+        apt-get -o APT::Sandbox::User=root -o Dir::Temp=/var/tmp -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 binutils build-essential cmake curl libssl-dev ca-certificates ;; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
@@ -99,7 +99,12 @@ RUN set -eux; \
         ;; \
     esac; \
     jobs="${BUILD_JOBS:-$(nproc)}"; \
-    cmake --build build --config Release -j"${jobs}"
+    echo "using build parallelism: ${jobs}"; \
+    cmake --build build --config Release --target llama-server --parallel "$jobs"; \
+    case "${LLAMA_BACKEND}" in \
+      cuda) cmake --build build --config Release --target ggml-cuda --parallel "$jobs" ;; \
+      vulkan) cmake --build build --config Release --target ggml-vulkan --parallel "$jobs" ;; \
+    esac
 
 RUN mkdir -p /out/lib /out/bin && \
     find build -name "*.so*" -exec cp -P {} /out/lib \; && \
