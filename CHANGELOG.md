@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.7](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.6...v0.6.7) (2026-05-21)
+
+
+### Bug Fixes
+
+* use supported Ubuntu base for Vulkan release ([f2a1c06](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/f2a1c0655576ae3e68fd95eebac0352d736c160c))
+* use supported Ubuntu base for Vulkan release ([7d2bf44](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/7d2bf449102b8b4a693ae41c571f2519f783f379))
+
 ## [0.6.6](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.5...v0.6.6) (2026-05-21)
 
 
