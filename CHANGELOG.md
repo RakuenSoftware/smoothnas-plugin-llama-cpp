@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.0...v0.7.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* install models across filesystems ([#74](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/74)) ([e49af5f](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/e49af5f40a678f9e4669250ae110ef4980bb5e41))
+
 ## [0.7.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.16...v0.7.0) (2026-05-21)
 
 
