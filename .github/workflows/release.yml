@@ -71,13 +71,20 @@ jobs:
 
       - name: Install crane
         timeout-minutes: 5
-        run: go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
+        run: |
+          set -euo pipefail
+          mkdir -p .tools "$RUNNER_TEMP/go-mod-${{ matrix.variant.name }}" "$RUNNER_TEMP/go-build-${{ matrix.variant.name }}"
+          timeout 300s env \
+            GOBIN="$PWD/.tools" \
+            GOMODCACHE="$RUNNER_TEMP/go-mod-${{ matrix.variant.name }}" \
+            GOCACHE="$RUNNER_TEMP/go-build-${{ matrix.variant.name }}" \
+            go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
 
       - name: Login to GHCR
         env:
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: $HOME/go/bin/crane auth login ghcr.io -u "$GHCR_USER" -p "$GHCR_TOKEN"
+        run: ./.tools/crane auth login ghcr.io -u "$GHCR_USER" -p "$GHCR_TOKEN"
 
       # GHCR rejects uppercase tags ("repository name must be lowercase").
       # The org slug is `RakuenSoftware` in github.repository, so we
@@ -101,8 +108,8 @@ jobs:
             ./scripts/release-docker-commit.sh
           archive="image-${{ matrix.variant.name }}.tar"
           docker save "$ref" -o "$archive"
-          $HOME/go/bin/crane push "$archive" "$ref"
-          digest="$($HOME/go/bin/crane digest "$ref")"
+          ./.tools/crane push "$archive" "$ref"
+          digest="$(./.tools/crane digest "$ref")"
           if [ -z "$digest" ]; then
             echo "crane digest did not return an image digest" >&2
             exit 1
