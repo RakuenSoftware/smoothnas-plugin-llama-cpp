@@ -101,11 +101,16 @@ jobs:
         run: |
           set -euo pipefail
           ref="${{ steps.image.outputs.ref }}"
+          build_jobs="$(nproc)"
+          case "${{ matrix.variant.name }}" in
+            cuda|vulkan) build_jobs=8 ;;
+          esac
           (
             cd wrapper
             CGO_ENABLED=0 go build -buildvcs=false -ldflags="-s -w" -o ../smoothnas-wrapper .
           )
           REF="$ref" \
+            BUILD_JOBS="$build_jobs" \
             LLAMA_BACKEND="${{ matrix.variant.backend }}" \
             LLAMA_BUILD_BASE="${{ matrix.variant.build_base }}" \
             LLAMA_RUNTIME_BASE="${{ matrix.variant.runtime_base }}" \
