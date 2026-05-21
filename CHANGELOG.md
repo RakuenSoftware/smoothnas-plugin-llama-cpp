@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.6](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.5...v0.7.6) (2026-05-21)
+
+
+### Bug Fixes
+
+* pass Docker archive URL as build arg ([#84](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/84)) ([24959ab](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/24959abefc28c1a47910477ff093a89cb72d15a1))
+
 ## [0.7.5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.4...v0.7.5) (2026-05-21)
 
 
