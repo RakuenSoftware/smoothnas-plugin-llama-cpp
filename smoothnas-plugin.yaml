@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.4.3
+  version: 0.5.0
   description: |
     llama.cpp inference server with CUDA acceleration,
     Gemma4 MTP support, and TurboQuant KV cache support.
@@ -126,7 +126,9 @@ config:
       - value: q8_0
       - value: q5_0
       - value: q4_0
-    description: KV cache K quantization. TurboQuant values require the bundled Atomic llama.cpp fork.
+    description: >-
+      KV cache K quantization. TurboQuant values require the bundled Atomic
+      llama.cpp fork.
   - key: LLAMA_ARG_CACHE_TYPE_V
     type: select
     label: V cache type
@@ -138,7 +140,9 @@ config:
       - value: q8_0
       - value: q5_0
       - value: q4_0
-    description: KV cache V quantization. TurboQuant values require the bundled Atomic llama.cpp fork.
+    description: >-
+      KV cache V quantization. TurboQuant values require the bundled Atomic
+      llama.cpp fork.
   - key: LLAMA_ARG_REASONING_FORMAT
     type: select
     label: Reasoning output format
