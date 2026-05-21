@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.1...v0.6.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* avoid race detector on self-hosted release ([#41](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/41)) ([1d6bb15](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/1d6bb153873275a11b2cb3fba448e38a07018a5f))
+
 ## [0.6.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.0...v0.6.1) (2026-05-21)
 
 
