@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.18](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.17...v0.7.18) (2026-05-21)
+
+
+### Bug Fixes
+
+* keep apt temp files off /tmp ([#108](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/108)) ([73d0efe](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/73d0efe27c0ec38f52bb1edd734c6b702d0077e6))
+
 ## [0.7.17](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.16...v0.7.17) (2026-05-21)
 
 
