@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.7](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.6...v0.7.7) (2026-05-21)
+
+
+### Bug Fixes
+
+* avoid shell arrays in Dockerfile cmake ([#86](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/86)) ([f0c5e09](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/f0c5e0909a5a5d57d4b4d5392d2be3b0322d26bd))
+
 ## [0.7.6](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.5...v0.7.6) (2026-05-21)
 
 
