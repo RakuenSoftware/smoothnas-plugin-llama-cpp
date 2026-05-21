@@ -22,7 +22,15 @@ RUN set -eux; \
       rm -f /dev/null; \
       mknod -m 666 /dev/null c 1 3 || touch /dev/null; \
     fi; \
-    chmod 666 /dev/null; \
+    if [[ ! -c /dev/random ]]; then \
+      rm -f /dev/random; \
+      mknod -m 666 /dev/random c 1 8; \
+    fi; \
+    if [[ ! -c /dev/urandom ]]; then \
+      rm -f /dev/urandom; \
+      mknod -m 666 /dev/urandom c 1 9; \
+    fi; \
+    chmod 666 /dev/null /dev/random /dev/urandom; \
     apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
@@ -91,7 +99,15 @@ RUN set -eux; \
       rm -f /dev/null; \
       mknod -m 666 /dev/null c 1 3 || touch /dev/null; \
     fi; \
-    chmod 666 /dev/null; \
+    if [[ ! -c /dev/random ]]; then \
+      rm -f /dev/random; \
+      mknod -m 666 /dev/random c 1 8; \
+    fi; \
+    if [[ ! -c /dev/urandom ]]; then \
+      rm -f /dev/urandom; \
+      mknod -m 666 /dev/urandom c 1 9; \
+    fi; \
+    chmod 666 /dev/null /dev/random /dev/urandom; \
     apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
