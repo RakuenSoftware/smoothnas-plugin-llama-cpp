@@ -80,8 +80,7 @@ RUN if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
 
 RUN mkdir -p /src/llama.cpp && \
     curl -fsSL -o /var/tmp/llama-cpp.tar.gz "${LLAMA_ARCHIVE_URL}" && \
-    tar -xzf /var/tmp/llama-cpp.tar.gz --strip-components=1 -C /src/llama.cpp && \
-    rm -f /var/tmp/llama-cpp.tar.gz
+    tar -xzf /var/tmp/llama-cpp.tar.gz --strip-components=1 -C /src/llama.cpp
 WORKDIR /src/llama.cpp
 RUN set -eux; \
     case "${LLAMA_BACKEND}" in \
@@ -155,8 +154,7 @@ RUN set -eux; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
-    apt-get clean -y && \
-    rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
+    apt-get clean -y
 
 COPY --from=llama-build /out/lib/ /app/
 COPY --from=llama-build /out/bin/llama-server /app/llama-server
