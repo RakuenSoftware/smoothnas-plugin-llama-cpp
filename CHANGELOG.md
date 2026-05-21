@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.3...v0.6.4) (2026-05-21)
+
+
+### Bug Fixes
+
+* call go directly in docker lxc builds ([eb338d5](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/eb338d56e8b8c44d2ed0e2472eda4b5004734b5e))
+
 ## [0.6.3](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.2...v0.6.3) (2026-05-21)
 
 
