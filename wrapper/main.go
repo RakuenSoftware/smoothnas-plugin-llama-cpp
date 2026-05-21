@@ -53,11 +53,11 @@
 //
 //	SPECULATIVE_MODE            llama.cpp speculative decoding mode. "none"
 //	                             disables wrapper-managed speculative flags.
-//	                             "draft-mtp" enables MTP decoding.
+//	                             "mtp" enables Gemma 4 MTP decoding.
 //
 //	SPEC_DRAFT_MODEL_PATH       Optional draft/MTP GGUF path inside the
-//	                             container. Empty means no separate draft
-//	                             model flag is passed.
+//	                             container. For Gemma 4 MTP this is passed
+//	                             as --mtp-head.
 //
 // Everything past the recognised wrapper flags is passed verbatim to
 // llama-server, so operators can supply --model / --n-gpu-layers / etc.
@@ -746,6 +746,10 @@ func speculativeArgs(getenv envGetter) []string {
 	}
 
 	args := []string{"--spec-type", mode}
+	if mode == "mtp" {
+		return gemmaMTPArgs(args, getenv)
+	}
+
 	appendIfSet := func(envKey, flag string) {
 		if v := strings.TrimSpace(getenv(envKey)); v != "" {
 			args = append(args, flag, v)
@@ -753,10 +757,29 @@ func speculativeArgs(getenv envGetter) []string {
 	}
 
 	appendIfSet("SPEC_DRAFT_MODEL_PATH", "--model-draft")
-	appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--spec-draft-n-max")
-	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--spec-draft-n-min")
+	appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--draft-max")
+	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--draft-min")
 	appendIfSet("SPEC_DRAFT_P_MIN", "--spec-draft-p-min")
 	appendIfSet("SPEC_DRAFT_P_SPLIT", "--spec-draft-p-split")
+	appendIfSet("SPEC_DRAFT_CACHE_TYPE_K", "--cache-type-k-draft")
+	appendIfSet("SPEC_DRAFT_CACHE_TYPE_V", "--cache-type-v-draft")
+	appendIfSet("SPEC_DRAFT_GPU_LAYERS", "--n-gpu-layers-draft")
+	appendIfSet("SPEC_DRAFT_CPU_MOE_LAYERS", "--n-cpu-moe-draft")
+
+	return args
+}
+
+func gemmaMTPArgs(args []string, getenv envGetter) []string {
+	appendIfSet := func(envKey, flag string) {
+		if v := strings.TrimSpace(getenv(envKey)); v != "" {
+			args = append(args, flag, v)
+		}
+	}
+
+	appendIfSet("SPEC_DRAFT_MODEL_PATH", "--mtp-head")
+	appendIfSet("SPEC_DRAFT_BLOCK_SIZE", "--draft-block-size")
+	appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--draft-max")
+	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--draft-min")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_K", "--cache-type-k-draft")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_V", "--cache-type-v-draft")
 	appendIfSet("SPEC_DRAFT_GPU_LAYERS", "--n-gpu-layers-draft")

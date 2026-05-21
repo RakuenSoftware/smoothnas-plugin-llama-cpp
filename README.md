@@ -1,6 +1,6 @@
 # smoothnas-plugin-llama-cpp
 
-The reference SmoothNAS plugin for [llama.cpp](https://github.com/ggml-org/llama.cpp). Runs `llama-server` inside a SmoothNAS-managed LXC system container with GPU passthrough, tier-bound model storage, and bearer-injected auth from the SmoothNAS UI.
+The reference SmoothNAS plugin for [llama.cpp](https://github.com/ggml-org/llama.cpp). Runs `llama-server` inside a SmoothNAS-managed LXC system container with GPU passthrough, tier-bound model storage, and bearer-injected auth from the SmoothNAS UI. Published images build the AtomicBot TurboQuant/MTP fork so Gemma4 assistant MTP and TurboQuant KV cache modes are available.
 
 This is the first reference plugin built against the [SmoothNAS plugin system](https://github.com/RakuenSoftware/smoothnas/blob/main/docs/proposals/pending/smoothnas-plugins.md). It exists as a worked example for plugin authors *and* as a real workload SmoothNAS operators can install.
 
@@ -51,8 +51,8 @@ after confirming the selected model fits the host and GPU:
 - `N_GPU_LAYERS=999` on CUDA/Vulkan manifests
 - `LLAMA_ARG_TEMP=0.8`
 - `MEMORY_LIMIT=32GiB`
-- `LLAMA_ARG_CACHE_TYPE_K=q8_0`
-- `LLAMA_ARG_CACHE_TYPE_V=q8_0`
+- `LLAMA_ARG_CACHE_TYPE_K=turbo3`
+- `LLAMA_ARG_CACHE_TYPE_V=turbo3`
 - `LLAMA_ARG_FLASH_ATTN=on`
 - `LLAMA_ARG_N_CPU_MOE=10` on CUDA/Vulkan manifests
 - `LLAMA_ARG_FIT=on` on CUDA/Vulkan manifests
@@ -64,15 +64,16 @@ quantization, update `MODEL_URL` and restart the plugin; the wrapper
 keeps a single active model at `/models/model.gguf` and replaces it
 when the URL changes.
 
-The manifests expose llama.cpp's MTP/speculative decoding controls in
-the plugin config UI. Leave `SPECULATIVE_MODE=none` for normal startup.
-Set `SPECULATIVE_MODE=draft-mtp` only when the bundled llama.cpp build
-and selected GGUF support MTP. `SPEC_DRAFT_MODEL_PATH` is optional; use
-it for a separate draft GGUF, and leave it empty when the target GGUF
-contains its own MTP draft tensors. The UI also exposes draft token
-limits, draft probability thresholds, and draft KV cache types; CUDA and
-Vulkan variants additionally expose draft GPU layers and draft CPU MoE
-placement.
+The manifests expose llama.cpp's speculative decoding controls in the
+plugin config UI. Leave `SPECULATIVE_MODE=none` for normal startup. For
+Gemma4 MTP, set `SPECULATIVE_MODE=mtp`, put the assistant GGUF path in
+`SPEC_DRAFT_MODEL_PATH`, and use TurboQuant KV types such as
+`LLAMA_ARG_CACHE_TYPE_K=turbo3`, `LLAMA_ARG_CACHE_TYPE_V=turbo3`,
+`SPEC_DRAFT_CACHE_TYPE_K=turbo3`, and `SPEC_DRAFT_CACHE_TYPE_V=turbo3`.
+The wrapper passes that assistant path as `--mtp-head` and maps the
+draft controls to `--draft-block-size`, `--draft-max`, and `--draft-min`.
+CUDA and Vulkan variants additionally expose draft GPU layers and draft
+CPU MoE placement.
 
 For normal coding/completions against Qwen thinking models, set
 `LLAMA_ARG_REASONING_FORMAT=none` when clients cannot handle
@@ -90,7 +91,9 @@ cd wrapper && go build ./... && go test ./...
 
 # image build (any variant)
 docker buildx build \
-  --build-arg LLAMA_BASE=ghcr.io/ggml-org/llama.cpp:server-cuda \
+  --build-arg LLAMA_BACKEND=cuda \
+  --build-arg LLAMA_BUILD_BASE=nvidia/cuda:12.8.1-devel-ubuntu24.04 \
+  --build-arg LLAMA_RUNTIME_BASE=nvidia/cuda:12.8.1-runtime-ubuntu24.04 \
   -t smoothnas-plugin-llama-cpp:dev-cuda .
 ```
 

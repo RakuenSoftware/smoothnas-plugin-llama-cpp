@@ -781,16 +781,17 @@ func TestEnsureModelRequiresURL(t *testing.T) {
 	}
 }
 
-func TestBuildLlamaArgs_DraftMTP(t *testing.T) {
+func TestBuildLlamaArgs_GemmaMTP(t *testing.T) {
 	env := map[string]string{
-		"SPECULATIVE_MODE":          "draft-mtp",
+		"SPECULATIVE_MODE":          "mtp",
 		"SPEC_DRAFT_MODEL_PATH":     "/models/mtp.gguf",
+		"SPEC_DRAFT_BLOCK_SIZE":     "3",
 		"SPEC_DRAFT_MAX_TOKENS":     "8",
 		"SPEC_DRAFT_MIN_TOKENS":     "1",
 		"SPEC_DRAFT_P_MIN":          "0.60",
 		"SPEC_DRAFT_P_SPLIT":        "0.10",
-		"SPEC_DRAFT_CACHE_TYPE_K":   "q8_0",
-		"SPEC_DRAFT_CACHE_TYPE_V":   "q8_0",
+		"SPEC_DRAFT_CACHE_TYPE_K":   "turbo3",
+		"SPEC_DRAFT_CACHE_TYPE_V":   "turbo3",
 		"SPEC_DRAFT_GPU_LAYERS":     "999",
 		"SPEC_DRAFT_CPU_MOE_LAYERS": "0",
 	}
@@ -798,14 +799,13 @@ func TestBuildLlamaArgs_DraftMTP(t *testing.T) {
 	want := []string{
 		"--host", "127.0.0.1", "--port", "8081",
 		"--model", "/models/main.gguf",
-		"--spec-type", "draft-mtp",
-		"--model-draft", "/models/mtp.gguf",
-		"--spec-draft-n-max", "8",
-		"--spec-draft-n-min", "1",
-		"--spec-draft-p-min", "0.60",
-		"--spec-draft-p-split", "0.10",
-		"--cache-type-k-draft", "q8_0",
-		"--cache-type-v-draft", "q8_0",
+		"--spec-type", "mtp",
+		"--mtp-head", "/models/mtp.gguf",
+		"--draft-block-size", "3",
+		"--draft-max", "8",
+		"--draft-min", "1",
+		"--cache-type-k-draft", "turbo3",
+		"--cache-type-v-draft", "turbo3",
 		"--n-gpu-layers-draft", "999",
 		"--n-cpu-moe-draft", "0",
 	}
@@ -814,17 +814,39 @@ func TestBuildLlamaArgs_DraftMTP(t *testing.T) {
 	}
 }
 
-func TestBuildLlamaArgs_DraftMTPOmitsEmptyDraftModel(t *testing.T) {
+func TestBuildLlamaArgs_GemmaMTPOmitsEmptyDraftModel(t *testing.T) {
 	env := map[string]string{
-		"SPECULATIVE_MODE":      "draft-mtp",
+		"SPECULATIVE_MODE":      "mtp",
 		"SPEC_DRAFT_MODEL_PATH": "   ",
 		"SPEC_DRAFT_MAX_TOKENS": "4",
 	}
 	got := buildLlamaArgs("8081", nil, mapEnv(env))
 	want := []string{
 		"--host", "127.0.0.1", "--port", "8081",
-		"--spec-type", "draft-mtp",
-		"--spec-draft-n-max", "4",
+		"--spec-type", "mtp",
+		"--draft-max", "4",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
+func TestBuildLlamaArgs_LegacyDraftUsesDraftModel(t *testing.T) {
+	env := map[string]string{
+		"SPECULATIVE_MODE":      "draft",
+		"SPEC_DRAFT_MODEL_PATH": "/models/draft.gguf",
+		"SPEC_DRAFT_MAX_TOKENS": "4",
+		"SPEC_DRAFT_MIN_TOKENS": "1",
+		"SPEC_DRAFT_P_MIN":      "0.60",
+	}
+	got := buildLlamaArgs("8081", nil, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--spec-type", "draft",
+		"--model-draft", "/models/draft.gguf",
+		"--draft-max", "4",
+		"--draft-min", "1",
+		"--spec-draft-p-min", "0.60",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("args = %#v want %#v", got, want)

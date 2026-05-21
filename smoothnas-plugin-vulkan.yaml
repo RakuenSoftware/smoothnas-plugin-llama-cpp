@@ -4,7 +4,8 @@ metadata:
   name: llama-cpp
   version: 0.4.3
   description: |
-    llama.cpp inference server with AMD Vulkan acceleration.
+    llama.cpp inference server with AMD Vulkan acceleration,
+    Gemma4 MTP support, and TurboQuant KV cache support.
     Models live on the NVME slot of an operator-chosen tier.
   vendor: smoothnas
   homepage: https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp
@@ -112,21 +113,27 @@ config:
   - key: LLAMA_ARG_CACHE_TYPE_K
     type: select
     label: K cache type
-    default: q8_0
+    default: turbo3
     options:
+      - value: turbo3
+      - value: turbo4
+      - value: turbo2
       - value: q8_0
       - value: q5_0
       - value: q4_0
-    description: KV cache K quantization. Q8 preserves quality.
+    description: KV cache K quantization. TurboQuant values require the bundled Atomic llama.cpp fork.
   - key: LLAMA_ARG_CACHE_TYPE_V
     type: select
     label: V cache type
-    default: q8_0
+    default: turbo3
     options:
+      - value: turbo3
+      - value: turbo4
+      - value: turbo2
       - value: q8_0
       - value: q5_0
       - value: q4_0
-    description: KV cache V quantization. Q8 preserves quality.
+    description: KV cache V quantization. TurboQuant values require the bundled Atomic llama.cpp fork.
   - key: LLAMA_ARG_REASONING_FORMAT
     type: select
     label: Reasoning output format
@@ -145,21 +152,30 @@ config:
     default: none
     options:
       - value: none
-      - value: draft-mtp
+      - value: mtp
+      - value: draft
+      - value: nextn
     description: >-
-      Enables llama.cpp speculative decoding. Use draft-mtp only with a
-      llama.cpp build and Qwen GGUF that support MTP.
+      Enables llama.cpp speculative decoding. Use mtp for Gemma4 assistant
+      drafting with an MTP head GGUF.
   - key: SPEC_DRAFT_MODEL_PATH
     type: string
-    label: Draft/MTP GGUF path
+    label: MTP head GGUF path
     default: ''
     description: >-
-      Optional draft/MTP model path inside the container. Leave empty when the
-      target GGUF includes its own MTP draft tensors.
+      Gemma4 assistant GGUF path inside the container. With SPECULATIVE_MODE=mtp
+      this is passed as --mtp-head.
+  - key: SPEC_DRAFT_BLOCK_SIZE
+    type: number
+    label: Draft block size
+    default: '3'
+    min: '2'
+    step: '1'
+    description: Gemma4 MTP draft block size passed to --draft-block-size.
   - key: SPEC_DRAFT_MAX_TOKENS
     type: number
     label: Draft max tokens
-    default: '16'
+    default: '8'
     min: '1'
     step: '1'
     description: Maximum number of draft tokens proposed during speculative decoding.
@@ -189,8 +205,11 @@ config:
   - key: SPEC_DRAFT_CACHE_TYPE_K
     type: select
     label: Draft K cache type
-    default: q8_0
+    default: turbo3
     options:
+      - value: turbo3
+      - value: turbo4
+      - value: turbo2
       - value: q8_0
       - value: q5_0
       - value: q4_0
@@ -198,8 +217,11 @@ config:
   - key: SPEC_DRAFT_CACHE_TYPE_V
     type: select
     label: Draft V cache type
-    default: q8_0
+    default: turbo3
     options:
+      - value: turbo3
+      - value: turbo4
+      - value: turbo2
       - value: q8_0
       - value: q5_0
       - value: q4_0
