@@ -57,29 +57,21 @@ RUN mkdir -p llama.cpp && \
 
 WORKDIR /src/llama.cpp
 RUN set -eux; \
-    cmake_args=( \
-      -S . \
-      -B build \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DGGML_NATIVE=OFF \
-      -DGGML_BACKEND_DL=ON \
-      -DGGML_CPU_ALL_VARIANTS=ON \
-      -DLLAMA_BUILD_TESTS=OFF \
-    ); \
     case "${LLAMA_BACKEND}" in \
       cuda) \
         if [[ "${CUDA_DOCKER_ARCH}" != "default" ]]; then \
-          cmake_args+=("-DCMAKE_CUDA_ARCHITECTURES=${CUDA_DOCKER_ARCH}"); \
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="${CUDA_DOCKER_ARCH}" -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined; \
+        else \
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DGGML_CUDA=ON -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined; \
         fi; \
-        cmake_args+=(-DGGML_CUDA=ON -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined); \
         ;; \
       vulkan) \
-        cmake_args+=(-DGGML_VULKAN=ON); \
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF -DGGML_VULKAN=ON; \
         ;; \
       cpu) \
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF; \
         ;; \
     esac; \
-    cmake "${cmake_args[@]}"; \
     cmake --build build --config Release -j"$(nproc)"
 
 RUN mkdir -p /out/lib /out/bin && \
