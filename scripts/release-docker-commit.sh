@@ -12,6 +12,7 @@ llama_ref="${LLAMA_REF:-24cabf4d08d460cfb6e73fa308a15b34e2b04600}"
 llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.tar.gz}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 build_jobs="${BUILD_JOBS:-}"
+image_build_mode="${LLAMA_IMAGE_BUILD_MODE:-docker}"
 
 suffix="${GITHUB_RUN_ID:-manual}-${backend}-$$"
 tmp="$(mktemp -d)"
@@ -25,7 +26,7 @@ trap cleanup EXIT
 
 case "$backend" in
   cuda)
-    build_deps="binutils build-essential cmake git libssl-dev libgomp1 ca-certificates"
+    build_deps="gcc-14 g++-14 binutils build-essential cmake git libssl-dev libgomp1 ca-certificates cuda-nvcc-12-8 cuda-nvvm-12-8 cuda-cudart-dev-12-8 cuda-driver-dev-12-8"
     runtime_deps="libgomp1 curl ca-certificates"
     ;;
   vulkan)
@@ -44,9 +45,32 @@ esac
 
 install_runner_deps() {
   export DEBIAN_FRONTEND=noninteractive
+  if [[ "$backend" == "cuda" ]]; then
+    ensure_cuda_apt_repo
+  fi
   apt_get update
   apt_get install -y $build_deps $runtime_deps
   apt_get clean -y
+}
+
+ensure_cuda_apt_repo() {
+  if [[ -f /etc/apt/sources.list.d/cuda-ubuntu2404-x86_64.list ]]; then
+    return
+  fi
+
+  apt_get update
+  apt_get install -y ca-certificates curl
+  local keyring="$tmp/cuda-keyring.deb"
+  curl --retry 5 --retry-delay 2 -fsSLo "$keyring" \
+    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+  if [[ "$(id -u)" -eq 0 ]]; then
+    dpkg -i "$keyring"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo dpkg -i "$keyring"
+  else
+    echo "dpkg requires root or sudo" >&2
+    return 1
+  fi
 }
 
 parallel_jobs() {
@@ -134,7 +158,12 @@ build_llama() {
         if [[ "$cuda_arch" != "default" ]]; then
           cmake_args+=("-DCMAKE_CUDA_ARCHITECTURES=$cuda_arch")
         fi
-        cmake_args+=(-DGGML_CUDA=ON -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined)
+        cmake_args+=(
+          -DGGML_CUDA=ON
+          -DCUDAToolkit_ROOT=/usr/local/cuda
+          -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc
+          -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+        )
         ;;
       vulkan)
         cmake_args+=(-DGGML_VULKAN=ON)
@@ -226,7 +255,7 @@ COPY rootfs/. /
 ENV LLAMA_BIN=/app/llama-server
 ENV LLAMA_PORT=8081
 ENV LISTEN_ADDR=:8080
-ENV LD_LIBRARY_PATH=/app:/usr/local/lib:/usr/lib/x86_64-linux-gnu
+ENV LD_LIBRARY_PATH=/app:/usr/local/cuda/lib64:/usr/local/lib:/usr/lib/x86_64-linux-gnu
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/smoothnas-wrapper"]
 EOF
@@ -252,7 +281,15 @@ if [[ -z "$build_jobs" ]]; then
 fi
 echo "using build parallelism: $build_jobs"
 
-if [[ "$backend" == "cuda" || "$backend" == "vulkan" ]]; then
+case "$image_build_mode" in
+  docker|native) ;;
+  *)
+    echo "unsupported LLAMA_IMAGE_BUILD_MODE=$image_build_mode" >&2
+    exit 1
+    ;;
+esac
+
+if [[ "$image_build_mode" == "docker" && ( "$backend" == "cuda" || "$backend" == "vulkan" ) ]]; then
   build_docker_image
   exit 0
 fi
