@@ -3,11 +3,11 @@ name: release
 # Builds + publishes plugin variants on tag push.
 # Tag format is plain semver: v0.1.0, v0.1.1, v1.0.0-rc1, etc.
 #
-# Each variant is built from the single Dockerfile via backend-specific
-# build args. The pushed-image digest is read back from docker push and
-# spliced into the matching manifest's artifact.image before the manifests
-# are attached to the GitHub release. Operators downloading the manifests
-# get a digest-pinned image reference, not a moving tag.
+# Each variant is built with the local Docker-compatible daemon, saved as an
+# image archive, and pushed to GHCR with crane. The pushed-image digest is
+# spliced into the matching manifest's artifact.image before the manifests are
+# attached to the GitHub release. Operators downloading the manifests get a
+# digest-pinned image reference, not a moving tag.
 
 on:
   push:
@@ -70,12 +70,14 @@ jobs:
         with:
           go-version: '1.25'
 
+      - name: Install crane
+        run: go install github.com/google/go-containerregistry/cmd/crane@latest
+
       - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: $HOME/go/bin/crane auth login ghcr.io -u "$GHCR_USER" -p "$GHCR_TOKEN"
 
       # GHCR rejects uppercase tags ("repository name must be lowercase").
       # The org slug is `RakuenSoftware` in github.repository, so we
@@ -97,18 +99,12 @@ jobs:
             LLAMA_BUILD_BASE="${{ matrix.variant.build_base }}" \
             LLAMA_RUNTIME_BASE="${{ matrix.variant.runtime_base }}" \
             ./scripts/release-docker-commit.sh
-          docker push "$ref" 2>&1 | tee docker-push.log
-          digest="$(python3 - <<'EOF'
-          import re
-          from pathlib import Path
-
-          log = Path("docker-push.log").read_text(encoding="utf-8", errors="replace")
-          matches = re.findall(r"digest:\s*(sha256:[0-9a-f]{64})", log)
-          print(matches[-1] if matches else "")
-          EOF
-          )"
+          archive="image-${{ matrix.variant.name }}.tar"
+          docker save "$ref" -o "$archive"
+          $HOME/go/bin/crane push "$archive" "$ref"
+          digest="$($HOME/go/bin/crane digest "$ref")"
           if [ -z "$digest" ]; then
-            echo "docker push did not return an image digest" >&2
+            echo "crane digest did not return an image digest" >&2
             exit 1
           fi
           echo "$digest" > "digest-${{ matrix.variant.name }}.txt"
