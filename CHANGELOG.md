@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.31](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.30...v0.7.31) (2026-05-21)
+
+
+### Bug Fixes
+
+* stabilize self-hosted accelerator builds ([#135](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/135)) ([2afc073](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/2afc073c24757824eb349f39c810f739b846326c))
+
 ## [0.7.30](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.29...v0.7.30) (2026-05-21)
 
 
