@@ -627,7 +627,7 @@ func copyFile(srcPath, dstPath string, mode os.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("open destination file: %w", err)
 	}
-	_, copyErr := io.Copy(dst, src)
+	_, copyErr := copyFileContents(dst, src)
 	chmodErr := dst.Chmod(mode)
 	closeErr := dst.Close()
 	if copyErr != nil {
@@ -640,6 +640,30 @@ func copyFile(srcPath, dstPath string, mode os.FileMode) error {
 		return fmt.Errorf("close destination file: %w", closeErr)
 	}
 	return nil
+}
+
+func copyFileContents(dst io.Writer, src io.Reader) (int64, error) {
+	buf := make([]byte, 1024*1024)
+	var written int64
+	for {
+		n, readErr := src.Read(buf)
+		if n > 0 {
+			w, writeErr := dst.Write(buf[:n])
+			written += int64(w)
+			if writeErr != nil {
+				return written, writeErr
+			}
+			if w != n {
+				return written, io.ErrShortWrite
+			}
+		}
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				return written, nil
+			}
+			return written, readErr
+		}
+	}
 }
 
 func normalizeModelURL(rawURL, envKey string) (string, error) {
