@@ -923,6 +923,29 @@ func TestBuildLlamaArgs_LegacyDraftUsesDraftModel(t *testing.T) {
 	}
 }
 
+func TestBuildLlamaArgs_QwenNextNUsesBuiltInDraftHeads(t *testing.T) {
+	env := map[string]string{
+		"SPECULATIVE_MODE":        "nextn",
+		"SPEC_DRAFT_MODEL_PATH":   "/models/qwen.gguf",
+		"SPEC_DRAFT_N_MAX":        "3",
+		"SPEC_DRAFT_CACHE_TYPE_K": "turbo3",
+		"SPEC_DRAFT_CACHE_TYPE_V": "turbo3",
+	}
+	got := buildLlamaArgs("8081", []string{"--model", "/models/qwen.gguf"}, mapEnv(env))
+	want := []string{
+		"--host", "127.0.0.1", "--port", "8081",
+		"--model", "/models/qwen.gguf",
+		"--spec-type", "nextn",
+		"--model-draft", "/models/qwen.gguf",
+		"--spec-draft-n-max", "3",
+		"--cache-type-k-draft", "turbo3",
+		"--cache-type-v-draft", "turbo3",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("args = %#v want %#v", got, want)
+	}
+}
+
 func mapEnv(values map[string]string) envGetter {
 	return func(key string) string {
 		return values[key]

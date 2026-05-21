@@ -62,9 +62,15 @@
 //	LISTEN_ADDR                 Address the wrapper itself binds. Default:
 //	                             :8080. Matches the manifest's exposed port.
 //
+//	SPEC_DRAFT_N_MAX            Optional number of built-in MTP heads to use.
+//	                             Appended as --spec-draft-n-max.
+//
 //	SPECULATIVE_MODE            llama.cpp speculative decoding mode. "none"
 //	                             disables wrapper-managed speculative flags.
 //	                             "mtp" enables Gemma 4 MTP decoding.
+//	                             "nextn" enables built-in MTP/NextN heads
+//	                             such as Qwen3.6 MTP GGUF files on the
+//	                             AtomicBot TurboQuant fork.
 //
 // Everything past the recognised wrapper flags is passed verbatim to
 // llama-server, so operators can supply --model / --n-gpu-layers / etc.
@@ -814,6 +820,7 @@ func speculativeArgs(getenv envGetter) []string {
 	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--draft-min")
 	appendIfSet("SPEC_DRAFT_P_MIN", "--spec-draft-p-min")
 	appendIfSet("SPEC_DRAFT_P_SPLIT", "--spec-draft-p-split")
+	appendIfSet("SPEC_DRAFT_N_MAX", "--spec-draft-n-max")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_K", "--cache-type-k-draft")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_V", "--cache-type-v-draft")
 	appendIfSet("SPEC_DRAFT_GPU_LAYERS", "--n-gpu-layers-draft")

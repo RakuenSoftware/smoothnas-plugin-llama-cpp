@@ -166,14 +166,15 @@ config:
       - value: nextn
     description: >-
       Enables llama.cpp speculative decoding. Use mtp for Gemma4 assistant
-      drafting with an MTP head GGUF.
+      drafting with an MTP head GGUF, or nextn for Qwen3.6 built-in MTP heads.
   - key: SPEC_DRAFT_MODEL_PATH
     type: string
     label: MTP head GGUF path
     default: ''
     description: >-
       Gemma4 assistant GGUF path inside the container. With SPECULATIVE_MODE=mtp
-      this is passed as --mtp-head. Leave empty when using SPEC_DRAFT_MODEL_URL.
+      this is passed as --mtp-head. With SPECULATIVE_MODE=nextn, set this to
+      /models/model.gguf for combined Qwen3.6 MTP GGUFs.
   - key: SPEC_DRAFT_MODEL_URL
     type: string
     label: MTP head download URL
@@ -195,6 +196,13 @@ config:
     min: '1'
     step: '1'
     description: Maximum number of draft tokens proposed during speculative decoding.
+  - key: SPEC_DRAFT_N_MAX
+    type: number
+    label: Built-in MTP heads
+    default: '3'
+    min: '1'
+    step: '1'
+    description: Number of built-in MTP/NextN draft heads passed to --spec-draft-n-max.
   - key: SPEC_DRAFT_MIN_TOKENS
     type: number
     label: Draft min tokens
