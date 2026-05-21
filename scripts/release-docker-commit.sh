@@ -9,6 +9,7 @@ llama_repo="${LLAMA_REPO:-https://github.com/AtomicBot-ai/atomic-llama-cpp-turbo
 llama_ref="${LLAMA_REF:-24cabf4d08d460cfb6e73fa308a15b34e2b04600}"
 llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.tar.gz}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
+build_jobs="${BUILD_JOBS:-}"
 
 suffix="${GITHUB_RUN_ID:-manual}-${backend}-$$"
 tmp="$(mktemp -d)"
@@ -26,7 +27,7 @@ case "$backend" in
     runtime_deps="libgomp1 curl ca-certificates"
     ;;
   vulkan)
-    build_deps="git build-essential cmake libssl-dev ca-certificates libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers"
+    build_deps="gcc-14 g++-14 git build-essential cmake libssl-dev ca-certificates libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers"
     runtime_deps="libgomp1 curl ca-certificates libvulkan1 mesa-vulkan-drivers libglvnd0 libgl1 libglx0 libegl1 libgles2"
     ;;
   cpu)
@@ -46,16 +47,31 @@ install_runner_deps() {
   apt_get clean -y
 }
 
+parallel_jobs() {
+  local quota period jobs
+  if [[ -r /sys/fs/cgroup/cpu.max ]]; then
+    read -r quota period < /sys/fs/cgroup/cpu.max || true
+    if [[ "${quota:-max}" != "max" && "${period:-0}" -gt 0 ]]; then
+      jobs=$(((quota + period - 1) / period))
+      if ((jobs > 0)); then
+        echo "$jobs"
+        return
+      fi
+    fi
+  fi
+  nproc
+}
+
 ensure_cxx_toolchain() {
   local cc cxx cc1plus cc1plus_dir major
 
-  cc="$(command -v gcc || true)"
-  cxx="$(command -v g++ || true)"
+  cc="$(command -v gcc-14 || command -v gcc || true)"
+  cxx="$(command -v g++-14 || command -v g++ || true)"
   if [[ -z "$cc" || -z "$cxx" ]]; then
     apt_get update
     apt_get install -y build-essential g++
-    cc="$(command -v gcc || true)"
-    cxx="$(command -v g++ || true)"
+    cc="$(command -v gcc-14 || command -v gcc || true)"
+    cxx="$(command -v g++-14 || command -v g++ || true)"
   fi
   if [[ -z "$cc" || -z "$cxx" ]]; then
     echo "gcc/g++ are not available after installing build dependencies" >&2
@@ -124,13 +140,13 @@ build_llama() {
     esac
 
     cmake "${cmake_args[@]}"
-    cmake --build build --config Release --target llama-server -j"$(nproc)"
+    cmake --build build --config Release --target llama-server -j"$build_jobs"
     case "$backend" in
       cuda)
-        cmake --build build --config Release --target ggml-cuda -j"$(nproc)"
+        cmake --build build --config Release --target ggml-cuda -j"$build_jobs"
         ;;
       vulkan)
-        cmake --build build --config Release --target ggml-vulkan -j"$(nproc)"
+        cmake --build build --config Release --target ggml-vulkan -j"$build_jobs"
         ;;
     esac
   )
@@ -224,9 +240,15 @@ build_cuda_image() {
     --build-arg LLAMA_REF="$llama_ref" \
     --build-arg LLAMA_ARCHIVE_URL="$llama_archive_url" \
     --build-arg CUDA_DOCKER_ARCH="$cuda_arch" \
+    --build-arg BUILD_JOBS="$build_jobs" \
     -t "$ref" \
     .
 }
+
+if [[ -z "$build_jobs" ]]; then
+  build_jobs="$(parallel_jobs)"
+fi
+echo "using build parallelism: $build_jobs"
 
 if [[ "$backend" == "cuda" ]]; then
   build_cuda_image

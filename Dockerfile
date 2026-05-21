@@ -15,6 +15,7 @@ ARG LLAMA_REPO=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git
 ARG LLAMA_REF=24cabf4d08d460cfb6e73fa308a15b34e2b04600
 ARG LLAMA_ARCHIVE_URL=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant/archive/24cabf4d08d460cfb6e73fa308a15b34e2b04600.tar.gz
 ARG CUDA_DOCKER_ARCH=default
+ARG BUILD_JOBS=
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -98,7 +99,8 @@ RUN set -eux; \
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_BACKEND_DL=ON -DGGML_CPU_ALL_VARIANTS=ON -DLLAMA_BUILD_TESTS=OFF; \
         ;; \
     esac; \
-    cmake --build build --config Release -j"$(nproc)"
+    jobs="${BUILD_JOBS:-$(nproc)}"; \
+    cmake --build build --config Release -j"${jobs}"
 
 RUN mkdir -p /out/lib /out/bin && \
     find build -name "*.so*" -exec cp -P {} /out/lib \; && \
