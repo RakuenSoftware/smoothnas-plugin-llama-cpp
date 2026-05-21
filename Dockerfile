@@ -12,7 +12,9 @@ ARG LLAMA_RUNTIME_BASE=ubuntu:24.04
 FROM golang:1.25-alpine AS wrapper-build
 WORKDIR /src
 COPY wrapper/go.mod wrapper/main.go ./
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /smoothnas-wrapper .
+# SmoothNAS' Docker-LXC legacy builder does not apply base-image ENV PATH
+# while replaying RUN steps, so call the Go toolchain by its absolute path.
+RUN CGO_ENABLED=0 /usr/local/go/bin/go build -ldflags="-s -w" -o /smoothnas-wrapper .
 
 # --- llama.cpp build ---
 FROM ${LLAMA_BUILD_BASE} AS llama-build
