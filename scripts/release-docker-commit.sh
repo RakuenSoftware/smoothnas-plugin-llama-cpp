@@ -7,6 +7,7 @@ build_base="${LLAMA_BUILD_BASE:?LLAMA_BUILD_BASE is required}"
 runtime_base="${LLAMA_RUNTIME_BASE:?LLAMA_RUNTIME_BASE is required}"
 llama_repo="${LLAMA_REPO:-https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git}"
 llama_ref="${LLAMA_REF:-24cabf4d08d460cfb6e73fa308a15b34e2b04600}"
+llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.tar.gz}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 
 suffix="${GITHUB_RUN_ID:-manual}-${backend}-$$"
@@ -173,6 +174,7 @@ build_cuda_image() {
     --build-arg LLAMA_RUNTIME_BASE="$runtime_base" \
     --build-arg LLAMA_REPO="$llama_repo" \
     --build-arg LLAMA_REF="$llama_ref" \
+    --build-arg LLAMA_ARCHIVE_URL="$llama_archive_url" \
     --build-arg CUDA_DOCKER_ARCH="$cuda_arch" \
     -t "$ref" \
     .
