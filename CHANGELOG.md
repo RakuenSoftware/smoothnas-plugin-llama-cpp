@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.32](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.31...v0.7.32) (2026-05-21)
+
+
+### Bug Fixes
+
+* serialize accelerator image builds ([#138](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/138)) ([a54536c](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/a54536c))
+
 ## [0.7.31](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.30...v0.7.31) (2026-05-21)
 
 
