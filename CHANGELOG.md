@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.30](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.29...v0.7.30) (2026-05-21)
+
+
+### Bug Fixes
+
+* avoid cuda image rm cleanup ([#133](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/133)) ([0de77e3](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/0de77e315c401fadd617b0f7dc77856c997f77a1))
+
 ## [0.7.29](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.28...v0.7.29) (2026-05-21)
 
 
