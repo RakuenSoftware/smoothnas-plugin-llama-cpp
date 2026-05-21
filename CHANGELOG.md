@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.28](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.27...v0.7.28) (2026-05-21)
+
+
+### Bug Fixes
+
+* respect runner build limits ([#129](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/129)) ([b3da718](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/b3da718023a558b6464aa544714eb73af618a5ba))
+
 ## [0.7.27](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.26...v0.7.27) (2026-05-21)
 
 
