@@ -92,7 +92,7 @@ Uninstall via the UI's Danger Zone removes the container, the cached image, the 
 cd wrapper && go build ./... && go test ./...
 
 # image build (any variant)
-docker buildx build \
+docker build \
   --build-arg LLAMA_BACKEND=cuda \
   --build-arg LLAMA_BUILD_BASE=nvidia/cuda:12.8.1-devel-ubuntu24.04 \
   --build-arg LLAMA_RUNTIME_BASE=nvidia/cuda:12.8.1-runtime-ubuntu24.04 \
@@ -105,7 +105,7 @@ To sideload a dev image into a SmoothNAS dev VM, edit the matching manifest's `a
 
 `.github/workflows/release.yml` runs on tag push (`v*`):
 
-1. Builds three image variants (CUDA / Vulkan / CPU) via buildx + GHCR push
+1. Builds three image variants (CUDA / Vulkan / CPU) via Docker + GHCR push
 2. Resolves the pushed digests and rewrites `artifact.digest` in each manifest
 3. Creates a GitHub release attaching the three rewritten manifests
 4. Pushes a release-channel `index.json` so the SmoothNAS install wizard can offer the variants alphabetically
