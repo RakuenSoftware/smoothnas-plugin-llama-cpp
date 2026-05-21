@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.8](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.7...v0.6.8) (2026-05-21)
+
+
+### Bug Fixes
+
+* repair dev null before apt in lxc builds ([e2dca12](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/e2dca125ef05d3c1fba0f3278f412cabcb952edc))
+* repair dev null before apt in lxc builds ([77e3187](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/77e3187434b7affa440dc9eb880883c6f64426d2))
+
 ## [0.6.7](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.6...v0.6.7) (2026-05-21)
 
 
