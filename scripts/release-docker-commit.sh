@@ -3,6 +3,7 @@ set -euo pipefail
 
 ref="${REF:?REF is required}"
 backend="${LLAMA_BACKEND:?LLAMA_BACKEND is required}"
+build_base="${LLAMA_BUILD_BASE:?LLAMA_BUILD_BASE is required}"
 runtime_base="${LLAMA_RUNTIME_BASE:?LLAMA_RUNTIME_BASE is required}"
 llama_repo="${LLAMA_REPO:-https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git}"
 llama_ref="${LLAMA_REF:-24cabf4d08d460cfb6e73fa308a15b34e2b04600}"
@@ -164,6 +165,23 @@ ENTRYPOINT ["/usr/local/bin/smoothnas-wrapper"]
 EOF
   docker build -f "$tmp/Dockerfile" -t "$ref" "$tmp"
 }
+
+build_cuda_image() {
+  docker build \
+    --build-arg LLAMA_BACKEND="$backend" \
+    --build-arg LLAMA_BUILD_BASE="$build_base" \
+    --build-arg LLAMA_RUNTIME_BASE="$runtime_base" \
+    --build-arg LLAMA_REPO="$llama_repo" \
+    --build-arg LLAMA_REF="$llama_ref" \
+    --build-arg CUDA_DOCKER_ARCH="$cuda_arch" \
+    -t "$ref" \
+    .
+}
+
+if [[ "$backend" == "cuda" ]]; then
+  build_cuda_image
+  exit 0
+fi
 
 install_runner_deps
 build_llama

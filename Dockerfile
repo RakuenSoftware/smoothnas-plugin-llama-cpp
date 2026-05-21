@@ -104,7 +104,6 @@ RUN set -eux; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
-    apt-get autoremove -y && \
     apt-get clean -y && \
     rm -rf /tmp/* /var/tmp/* /var/lib/apt/lists/*
 
