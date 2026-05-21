@@ -35,6 +35,16 @@ RUN set -eux; \
     mkdir -p /tmp /var/tmp /var/tmp/apt/lists/partial /var/tmp/apt/archives/partial; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
+    if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
+      rm -f /etc/apt/sources.list.d/ubuntu.sources; \
+      printf '%s\n' \
+        'Types: deb' \
+        'URIs: http://archive.ubuntu.com/ubuntu/' \
+        'Suites: noble' \
+        'Components: main universe restricted multiverse' \
+        'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+        > /etc/apt/sources.list.d/ubuntu-main.sources; \
+    fi; \
     apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
@@ -111,6 +121,16 @@ RUN set -eux; \
     mkdir -p /tmp /var/tmp /var/tmp/apt/lists/partial /var/tmp/apt/archives/partial; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
+    if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
+      rm -f /etc/apt/sources.list.d/ubuntu.sources; \
+      printf '%s\n' \
+        'Types: deb' \
+        'URIs: http://archive.ubuntu.com/ubuntu/' \
+        'Suites: noble' \
+        'Components: main universe restricted multiverse' \
+        'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' \
+        > /etc/apt/sources.list.d/ubuntu-main.sources; \
+    fi; \
     apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \

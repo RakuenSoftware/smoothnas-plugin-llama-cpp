@@ -40,7 +40,7 @@ jobs:
 
   publish:
     needs: test
-    runs-on: [self-hosted, Linux, X64, smoothnas]
+    runs-on: ${{ fromJSON(matrix.variant.runs_on) }}
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -50,14 +50,17 @@ jobs:
             backend: cuda
             build_base: nvidia/cuda:12.8.1-devel-ubuntu24.04
             runtime_base: nvidia/cuda:12.8.1-runtime-ubuntu24.04
+            runs_on: '["self-hosted","Linux","X64","smoothnas"]'
           - name: vulkan
             backend: vulkan
             build_base: ubuntu:24.04
             runtime_base: ubuntu:24.04
+            runs_on: '["self-hosted","Linux","X64","smoothnas"]'
           - name: cpu
             backend: cpu
             build_base: ubuntu:24.04
             runtime_base: ubuntu:24.04
+            runs_on: '"ubuntu-latest"'
     steps:
       - uses: actions/checkout@v4
 
