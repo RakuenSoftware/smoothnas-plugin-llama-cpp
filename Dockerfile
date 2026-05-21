@@ -35,17 +35,18 @@ RUN set -eux; \
     mkdir -p /tmp /var/tmp /var/tmp/apt/lists/partial /var/tmp/apt/archives/partial; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
-    apt_opts="-o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives"; \
-    apt-get ${apt_opts} update && \
+    apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get ${apt_opts} install -y gcc-14 g++-14 build-essential cmake curl libssl-dev libgomp1 ca-certificates \
-          cuda-compiler-12-8 cuda-nvvm-12-8 ;; \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 build-essential cmake curl libssl-dev libgomp1 ca-certificates \
+          cuda-compiler-12-8 cuda-nvvm-12-8 && \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y --reinstall \
+          cuda-nvvm-12-8 cuda-nvcc-12-8 cuda-crt-12-8 ;; \
       vulkan) \
-        apt-get ${apt_opts} install -y curl build-essential cmake libssl-dev ca-certificates \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y curl build-essential cmake libssl-dev ca-certificates \
           libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
       cpu) \
-        apt-get ${apt_opts} install -y gcc-14 g++-14 build-essential cmake curl libssl-dev ca-certificates ;; \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y gcc-14 g++-14 build-essential cmake curl libssl-dev ca-certificates ;; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
@@ -112,16 +113,15 @@ RUN set -eux; \
     mkdir -p /tmp /var/tmp /var/tmp/apt/lists/partial /var/tmp/apt/archives/partial; \
     chmod 1777 /tmp /var/tmp; \
     export TMPDIR=/var/tmp; \
-    apt_opts="-o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives"; \
-    apt-get ${apt_opts} update && \
+    apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get ${apt_opts} install -y libgomp1 curl ca-certificates ;; \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y libgomp1 curl ca-certificates ;; \
       vulkan) \
-        apt-get ${apt_opts} install -y libgomp1 curl ca-certificates libvulkan1 mesa-vulkan-drivers \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y libgomp1 curl ca-certificates libvulkan1 mesa-vulkan-drivers \
           libglvnd0 libgl1 libglx0 libegl1 libgles2 ;; \
       cpu) \
-        apt-get ${apt_opts} install -y libgomp1 curl ca-certificates ;; \
+        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y libgomp1 curl ca-certificates ;; \
       *) \
         echo "unsupported LLAMA_BACKEND=${LLAMA_BACKEND}" >&2; exit 1 ;; \
     esac && \
