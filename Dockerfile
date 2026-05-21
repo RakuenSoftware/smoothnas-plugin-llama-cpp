@@ -50,8 +50,10 @@ RUN set -eux; \
       cuda) \
         apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y cmake curl libgomp1 ca-certificates \
           cuda-compiler-12-8 cuda-nvvm-12-8 && \
-        apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y --reinstall \
-          cuda-nvvm-12-8 cuda-nvcc-12-8 cuda-crt-12-8 ;; \
+        curl --retry 5 --retry-delay 2 -fsSLo /var/tmp/cuda-crt-12-8.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-crt-12-8_12.8.93-1_amd64.deb && \
+        curl --retry 5 --retry-delay 2 -fsSLo /var/tmp/cuda-nvvm-12-8.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-nvvm-12-8_12.8.93-1_amd64.deb && \
+        curl --retry 5 --retry-delay 2 -fsSLo /var/tmp/cuda-nvcc-12-8.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-nvcc-12-8_12.8.93-1_amd64.deb && \
+        dpkg -i /var/tmp/cuda-crt-12-8.deb /var/tmp/cuda-nvvm-12-8.deb /var/tmp/cuda-nvcc-12-8.deb ;; \
       vulkan) \
         apt-get -o APT::Sandbox::User=root -o Acquire::Retries=5 -o Acquire::Queue-Mode=access -o Acquire::http::Pipeline-Depth=0 -o Dir::State::lists=/var/tmp/apt/lists -o Dir::Cache::archives=/var/tmp/apt/archives install -y curl build-essential cmake libssl-dev ca-certificates \
           libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
