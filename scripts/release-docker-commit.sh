@@ -75,6 +75,14 @@ build_llama() {
 
     cmake "${cmake_args[@]}"
     cmake --build build --config Release --target llama-server -j"$(nproc)"
+    case "$backend" in
+      cuda)
+        cmake --build build --config Release --target ggml-cuda -j"$(nproc)"
+        ;;
+      vulkan)
+        cmake --build build --config Release --target ggml-vulkan -j"$(nproc)"
+        ;;
+    esac
   )
 }
 
@@ -119,6 +127,7 @@ stage_rootfs() {
     mkdir -p "$rootfs/etc/ssl"
     cp -a /etc/ssl/certs "$rootfs/etc/ssl/"
   fi
+  copy_one_lib /lib64/ld-linux-x86-64.so.2
 
   copy_runtime_closure
 
