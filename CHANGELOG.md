@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.25](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.24...v0.7.25) (2026-05-21)
+
+
+### Bug Fixes
+
+* include Ubuntu updates for CUDA compiler deps ([#123](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/123)) ([aaa1f58](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/aaa1f58bc753487edd4f85301400f3bf31d77cc3))
+
 ## [0.7.24](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.23...v0.7.24) (2026-05-21)
 
 
