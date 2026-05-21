@@ -34,7 +34,7 @@ This repo's `wrapper/` is a tiny Go binary (~150 LoC) that:
 In the SmoothNAS UI:
 
 1. **Install** → paste this manifest into the wizard, pick a tier with NVME slot capacity, set `MODEL_URL` to the GGUF download URL, install
-2. **Start** → click Start; tierd pulls the wrapper image, creates the container, captures the bridge IP, writes the nginx route with the bearer token, and the wrapper downloads the configured model URL into `/models/model.gguf`
+2. **Start** → click Start; tierd pulls the wrapper image, creates the container, captures the bridge IP, writes the nginx route with the bearer token, and the wrapper downloads the configured model URL into `/models/model.gguf`. If `SPEC_DRAFT_MODEL_URL` is set, it also downloads that GGUF before starting llama.cpp.
 3. **Open** → click Open on the card; the llama.cpp UI renders inside the SmoothNAS chrome at `https://<smoothnas>/plugins/llama-cpp/`
 
 CUDA and Vulkan manifests expose a `GPU` install-time field. Leave it
@@ -67,13 +67,15 @@ when the URL changes.
 The manifests expose llama.cpp's speculative decoding controls in the
 plugin config UI. Leave `SPECULATIVE_MODE=none` for normal startup. For
 Gemma4 MTP, set `SPECULATIVE_MODE=mtp`, put the assistant GGUF path in
-`SPEC_DRAFT_MODEL_PATH`, and use TurboQuant KV types such as
+`SPEC_DRAFT_MODEL_PATH` or its download URL in `SPEC_DRAFT_MODEL_URL`,
+and use TurboQuant KV types such as
 `LLAMA_ARG_CACHE_TYPE_K=turbo3`, `LLAMA_ARG_CACHE_TYPE_V=turbo3`,
 `SPEC_DRAFT_CACHE_TYPE_K=turbo3`, and `SPEC_DRAFT_CACHE_TYPE_V=turbo3`.
-The wrapper passes that assistant path as `--mtp-head` and maps the
-draft controls to `--draft-block-size`, `--draft-max`, and `--draft-min`.
-CUDA and Vulkan variants additionally expose draft GPU layers and draft
-CPU MoE placement.
+When `SPEC_DRAFT_MODEL_URL` is set and `SPEC_DRAFT_MODEL_PATH` is empty,
+the wrapper caches the assistant GGUF at `/models/mtp-head.gguf` and passes
+that path as `--mtp-head`. It maps the draft controls to
+`--draft-block-size`, `--draft-max`, and `--draft-min`. CUDA and Vulkan
+variants additionally expose draft GPU layers and draft CPU MoE placement.
 
 For normal coding/completions against Qwen thinking models, set
 `LLAMA_ARG_REASONING_FORMAT=none` when clients cannot handle

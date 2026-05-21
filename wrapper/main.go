@@ -48,16 +48,23 @@
 //	MODEL_PATH                  Private in-container model destination.
 //	                             Default: /models/model.gguf.
 //
+//	SPEC_DRAFT_MODEL_URL        Optional draft/MTP GGUF download URL. When set,
+//	                             the wrapper downloads this into
+//	                             SPEC_DRAFT_MODEL_PATH before starting
+//	                             llama-server.
+//
+//	SPEC_DRAFT_MODEL_PATH       Optional draft/MTP GGUF path inside the
+//	                             container. For Gemma 4 MTP this is passed
+//	                             as --mtp-head. Default when
+//	                             SPEC_DRAFT_MODEL_URL is set:
+//	                             /models/mtp-head.gguf.
+//
 //	LISTEN_ADDR                 Address the wrapper itself binds. Default:
 //	                             :8080. Matches the manifest's exposed port.
 //
 //	SPECULATIVE_MODE            llama.cpp speculative decoding mode. "none"
 //	                             disables wrapper-managed speculative flags.
 //	                             "mtp" enables Gemma 4 MTP decoding.
-//
-//	SPEC_DRAFT_MODEL_PATH       Optional draft/MTP GGUF path inside the
-//	                             container. For Gemma 4 MTP this is passed
-//	                             as --mtp-head.
 //
 // Everything past the recognised wrapper flags is passed verbatim to
 // llama-server, so operators can supply --model / --n-gpu-layers / etc.
@@ -116,7 +123,22 @@ func main() {
 		waitForServerExit(ctx, srv, serverDone)
 		return
 	}
-	state.setPhase("Starting llama.cpp", "Model downloaded. Starting llama.cpp server.", 0, 0)
+	draftPath, err := ensureDraftModelWithProgress(ctx, os.Getenv, http.DefaultClient, state.setDraftDownloadProgress)
+	if err != nil {
+		log.Printf("prepare draft model: %v", err)
+		state.setError(err)
+		waitForServerExit(ctx, srv, serverDone)
+		return
+	}
+	if draftPath != "" && strings.TrimSpace(os.Getenv("SPEC_DRAFT_MODEL_PATH")) == "" {
+		if err := os.Setenv("SPEC_DRAFT_MODEL_PATH", draftPath); err != nil {
+			log.Printf("set SPEC_DRAFT_MODEL_PATH: %v", err)
+			state.setError(err)
+			waitForServerExit(ctx, srv, serverDone)
+			return
+		}
+	}
+	state.setPhase("Starting llama.cpp", "Configured GGUF files are ready. Starting llama.cpp server.", 0, 0)
 	llamaArgs := buildLlamaArgs(llamaPort, os.Args[1:], os.Getenv)
 	llamaArgs = appendModelArgIfMissing(llamaArgs, modelPath)
 
@@ -241,6 +263,10 @@ func (s *startupState) setDownloadProgress(written, total int64) {
 	s.setPhase("Downloading model", modelDownloadMessage(written, total), written, total)
 }
 
+func (s *startupState) setDraftDownloadProgress(written, total int64) {
+	s.setPhase("Downloading MTP head", draftDownloadMessage(written, total), written, total)
+}
+
 func (s *startupState) setError(err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -358,17 +384,25 @@ func modelErrorMessage(prepareErr error) string {
 }
 
 func modelDownloadMessage(written, total int64) string {
+	return downloadMessage("model", written, total)
+}
+
+func draftDownloadMessage(written, total int64) string {
+	return downloadMessage("MTP head", written, total)
+}
+
+func downloadMessage(name string, written, total int64) string {
 	if total > 0 {
 		percent := (float64(written) / float64(total)) * 100
 		if percent > 100 {
 			percent = 100
 		}
-		return fmt.Sprintf("Downloading model %.1f / %.1f GiB (%.0f%%).", gib(written), gib(total), percent)
+		return fmt.Sprintf("Downloading %s %.1f / %.1f GiB (%.0f%%).", name, gib(written), gib(total), percent)
 	}
 	if written > 0 {
-		return fmt.Sprintf("Downloading model %.1f GiB.", gib(written))
+		return fmt.Sprintf("Downloading %s %.1f GiB.", name, gib(written))
 	}
-	return "Downloading model."
+	return fmt.Sprintf("Downloading %s.", name)
 }
 
 func progressElement(snap startupSnapshot) string {
@@ -447,7 +481,10 @@ func envOr(k, def string) string {
 type envGetter func(string) string
 type progressFunc func(written, total int64)
 
-const defaultModelPath = "/models/model.gguf"
+const (
+	defaultModelPath      = "/models/model.gguf"
+	defaultDraftModelPath = "/models/mtp-head.gguf"
+)
 
 func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (string, error) {
 	return ensureModelWithProgress(ctx, getenv, client, nil)
@@ -458,18 +495,34 @@ func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http
 	if rawURL == "" {
 		return "", errors.New("MODEL_URL is empty; configure a GGUF download URL")
 	}
-	downloadURL, err := normalizeModelURL(rawURL)
+	modelPath := strings.TrimSpace(getenv("MODEL_PATH"))
+	if modelPath == "" {
+		modelPath = defaultModelPath
+	}
+	return ensureModelAtPathWithProgress(ctx, client, rawURL, modelPath, "MODEL_URL", "MODEL_PATH", progress)
+}
+
+func ensureDraftModelWithProgress(ctx context.Context, getenv envGetter, client *http.Client, progress progressFunc) (string, error) {
+	rawURL := strings.TrimSpace(getenv("SPEC_DRAFT_MODEL_URL"))
+	if rawURL == "" {
+		return "", nil
+	}
+	modelPath := strings.TrimSpace(getenv("SPEC_DRAFT_MODEL_PATH"))
+	if modelPath == "" {
+		modelPath = defaultDraftModelPath
+	}
+	return ensureModelAtPathWithProgress(ctx, client, rawURL, modelPath, "SPEC_DRAFT_MODEL_URL", "SPEC_DRAFT_MODEL_PATH", progress)
+}
+
+func ensureModelAtPathWithProgress(ctx context.Context, client *http.Client, rawURL, modelPath, urlEnvKey, pathEnvKey string, progress progressFunc) (string, error) {
+	downloadURL, err := normalizeModelURL(rawURL, urlEnvKey)
 	if err != nil {
 		return "", err
 	}
 	cacheKey := modelCacheKey(downloadURL)
 
-	modelPath := strings.TrimSpace(getenv("MODEL_PATH"))
-	if modelPath == "" {
-		modelPath = defaultModelPath
-	}
 	if !filepath.IsAbs(modelPath) {
-		return "", fmt.Errorf("MODEL_PATH must be absolute")
+		return "", fmt.Errorf("%s must be absolute", pathEnvKey)
 	}
 
 	markerPath := modelPath + ".url"
@@ -538,10 +591,10 @@ func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http
 	return modelPath, nil
 }
 
-func normalizeModelURL(rawURL string) (string, error) {
+func normalizeModelURL(rawURL, envKey string) (string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil || u == nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return "", fmt.Errorf("MODEL_URL must be an http or https URL")
+		return "", fmt.Errorf("%s must be an http or https URL", envKey)
 	}
 	if strings.EqualFold(u.Hostname(), "huggingface.co") && strings.Contains(u.Path, "/blob/") {
 		u.Path = strings.Replace(u.Path, "/blob/", "/resolve/", 1)
