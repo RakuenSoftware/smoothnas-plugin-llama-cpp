@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.9](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.8...v0.6.9) (2026-05-21)
+
+
+### Bug Fixes
+
+* use buildkit docker driver for releases ([d965bfc](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/d965bfc08db3ccde6f7261dd10db7273c9565ac8))
+* use buildkit docker driver for releases ([e16719b](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/e16719bfac8db096192b9c8d0b572bf68ad93ea2))
+
 ## [0.6.8](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.6.7...v0.6.8) (2026-05-21)
 
 
