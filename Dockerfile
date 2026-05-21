@@ -38,7 +38,8 @@ RUN set -eux; \
     apt-get update && \
     case "${LLAMA_BACKEND}" in \
       cuda) \
-        apt-get install -y gcc-14 g++-14 build-essential cmake curl libssl-dev libgomp1 ca-certificates ;; \
+        apt-get install -y gcc-14 g++-14 build-essential cmake curl libssl-dev libgomp1 ca-certificates \
+          cuda-compiler-12-8 cuda-nvvm-12-8 ;; \
       vulkan) \
         apt-get install -y curl build-essential cmake libssl-dev ca-certificates \
           libxcb-xinput0 libxcb-xinerama0 libxcb-cursor-dev libvulkan-dev glslc spirv-headers ;; \
@@ -52,6 +53,11 @@ RUN set -eux; \
 RUN if [[ "${LLAMA_BACKEND}" == "cuda" || "${LLAMA_BACKEND}" == "cpu" ]]; then \
       update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 && \
       update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100; \
+    fi
+
+RUN if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
+      test -x /usr/local/cuda/bin/nvcc && \
+      test -x /usr/local/cuda/nvvm/bin/cicc; \
     fi
 
 WORKDIR /src
