@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.1...v0.7.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* use buffered model copy fallback ([#76](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/76)) ([24e39ff](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/24e39ff8afbeebdeca93df4bcb670aea2d03723e))
+
 ## [0.7.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.0...v0.7.1) (2026-05-21)
 
 
