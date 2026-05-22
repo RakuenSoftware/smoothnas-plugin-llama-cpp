@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.7.43
+  version: 0.7.44
   description: |
     llama.cpp inference server with AMD Vulkan acceleration,
     Gemma4 MTP support, and TurboQuant KV cache support.
@@ -58,10 +58,14 @@ config:
     type: string
     label: Model download URL
     default: ''
-    description: |
+    description: >
       HTTP(S) URL for the GGUF model this one-model container should run.
-      On start, the wrapper caches this URL under /models using the GGUF filename
-      inside the container, leaving other cached GGUFs in place when the URL changes.
+
+      On start, the wrapper caches this URL under /models using the GGUF
+      filename
+
+      inside the container, leaving other cached GGUFs in place when the URL
+      changes.
   - key: LLAMA_ARG_TEMP
     type: number
     label: Temperature
@@ -168,8 +172,8 @@ config:
     default: ''
     description: >-
       Gemma4 assistant GGUF path inside the container. With SPECULATIVE_MODE=mtp
-      this is passed as --mtp-head. With SPECULATIVE_MODE=nextn, set this to
-      the cached target model path for combined Qwen3.6 MTP GGUFs.
+      this is passed as --mtp-head. With SPECULATIVE_MODE=nextn, set this to the
+      cached target model path for combined Qwen3.6 MTP GGUFs.
   - key: SPEC_DRAFT_MODEL_URL
     type: string
     label: MTP head download URL

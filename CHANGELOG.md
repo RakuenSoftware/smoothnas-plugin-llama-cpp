@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.44](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.43...v0.7.44) (2026-05-22)
+
+
+### Bug Fixes
+
+* cache models by gguf filename ([#162](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/162)) ([6cacc64](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/6cacc64386e74d29c730d45c856df7dc446d55cf))
+
 ## [0.7.43](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.42...v0.7.43) (2026-05-22)
 
 
