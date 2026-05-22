@@ -606,6 +606,15 @@ func installModelFile(tmpPath, modelPath string) error {
 		return err
 	}
 
+	if err := os.Remove(modelPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := renameModelFile(tmpPath, modelPath); err == nil {
+		return nil
+	} else if !errors.Is(err, syscall.EXDEV) {
+		return err
+	}
+
 	if err := copyFile(tmpPath, modelPath, 0o640); err != nil {
 		_ = os.Remove(modelPath)
 		return err

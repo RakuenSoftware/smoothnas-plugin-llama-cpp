@@ -26,85 +26,18 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ["self-hosted","Linux","X64","smoothnas"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
+      - name: Verify baked runner tools
+        run: |
+          set -euo pipefail
+          go version
       - name: wrapper tests
         working-directory: wrapper
         run: |
           go vet ./...
           go test ./...
-
-  publish-cpu:
-    needs: test
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set version
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-
-      - name: Install crane
-        timeout-minutes: 5
-        run: |
-          set -euo pipefail
-          mkdir -p .tools
-          crane_archive="$RUNNER_TEMP/go-containerregistry_Linux_x86_64.tar.gz"
-          timeout 300s curl --retry 5 --retry-delay 2 -fsSL \
-            -o "$crane_archive" \
-            https://github.com/google/go-containerregistry/releases/download/v0.20.6/go-containerregistry_Linux_x86_64.tar.gz
-          tar -xzf "$crane_archive" -C .tools crane
-          chmod +x .tools/crane
-
-      - name: Login to GHCR
-        env:
-          GHCR_USER: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./.tools/crane auth login ghcr.io -u "$GHCR_USER" -p "$GHCR_TOKEN"
-
-      - name: Compute lowercase image ref
-        id: image
-        run: echo "ref=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]'):${{ steps.version.outputs.version }}-cpu" >> "$GITHUB_OUTPUT"
-
-      - name: Build + push (cpu)
-        run: |
-          set -euo pipefail
-          ref="${{ steps.image.outputs.ref }}"
-          (
-            cd wrapper
-            CGO_ENABLED=0 go build -buildvcs=false -ldflags="-s -w" -o ../smoothnas-wrapper .
-          )
-          REF="$ref" \
-            BUILD_JOBS="$(nproc)" \
-            LLAMA_BACKEND="cpu" \
-            LLAMA_BUILD_BASE="ubuntu:24.04" \
-            LLAMA_RUNTIME_BASE="ubuntu:24.04" \
-            ./scripts/release-docker-commit.sh
-          archive="image-cpu.tar"
-          docker save "$ref" -o "$archive"
-          ./.tools/crane push "$archive" "$ref"
-          digest="$(./.tools/crane digest "$ref")"
-          if [ -z "$digest" ]; then
-            echo "crane digest did not return an image digest" >&2
-            exit 1
-          fi
-          echo "$digest" > "digest-cpu.txt"
-
-      - name: Upload digest artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: digest-cpu
-          path: digest-cpu.txt
-          if-no-files-found: error
 
   publish:
     needs: test
@@ -115,6 +48,11 @@ jobs:
       max-parallel: 1
       matrix:
         variant:
+          - name: cpu
+            backend: cpu
+            build_base: ubuntu:24.04
+            runtime_base: ubuntu:24.04
+            runs_on: '["self-hosted","Linux","X64","smoothnas"]'
           - name: cuda
             backend: cuda
             build_base: nvidia/cuda:12.8.1-devel-ubuntu24.04
@@ -137,6 +75,21 @@ jobs:
           set -euo pipefail
           go version
           crane version
+          docker version
+          if [ -n "${LLAMA_SOURCE_DIR:-}" ] && [ -f "$LLAMA_SOURCE_DIR/CMakeLists.txt" ]; then
+            echo "using LLAMA_SOURCE_DIR=$LLAMA_SOURCE_DIR"
+          elif [ -f /opt/atomic-llama-cpp-turboquant/CMakeLists.txt ]; then
+            echo "using /opt/atomic-llama-cpp-turboquant"
+          elif [ -f /opt/smoothnas/atomic-llama-cpp-turboquant/CMakeLists.txt ]; then
+            echo "using /opt/smoothnas/atomic-llama-cpp-turboquant"
+          elif [ -f /opt/llama.cpp/CMakeLists.txt ]; then
+            echo "using /opt/llama.cpp"
+          elif [ -f /opt/smoothnas/llama.cpp/CMakeLists.txt ]; then
+            echo "using /opt/smoothnas/llama.cpp"
+          else
+            echo "no baked llama.cpp source tree found; set LLAMA_SOURCE_DIR on the runner image" >&2
+            exit 1
+          fi
           case "${{ matrix.variant.name }}" in
             cuda) /usr/local/cuda/bin/nvcc --version ;;
             vulkan) glslc --version ;;
@@ -193,22 +146,15 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [publish-cpu, publish]
-    runs-on: ubuntu-latest
+    needs: [publish]
+    runs-on: ["self-hosted","Linux","X64","smoothnas"]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ensure python3
+      - name: Verify baked release tools
         run: |
-          if ! command -v python3 >/dev/null 2>&1; then
-            if command -v sudo >/dev/null 2>&1; then
-              sudo apt-get update
-              sudo apt-get install -y python3
-            else
-              apt-get update
-              apt-get install -y python3
-            fi
-          fi
+          set -euo pipefail
+          python3 --version
 
       - name: Set version
         id: version

@@ -475,6 +475,48 @@ func TestInstallModelFileCopiesAcrossDevices(t *testing.T) {
 	}
 }
 
+func TestInstallModelFileRetriesRenameAfterRemovingDestination(t *testing.T) {
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, ".model.download")
+	modelPath := filepath.Join(dir, "model.gguf")
+	if err := os.WriteFile(tmpPath, []byte("GGUF-data"), 0o640); err != nil {
+		t.Fatalf("write tmp model: %v", err)
+	}
+	if err := os.WriteFile(modelPath, []byte("stale"), 0o640); err != nil {
+		t.Fatalf("write stale model: %v", err)
+	}
+
+	oldRename := renameModelFile
+	renameCalls := 0
+	renameModelFile = func(oldPath, newPath string) error {
+		renameCalls++
+		if renameCalls == 1 {
+			return &os.LinkError{Op: "rename", Old: oldPath, New: newPath, Err: syscall.EXDEV}
+		}
+		return os.Rename(oldPath, newPath)
+	}
+	defer func() {
+		renameModelFile = oldRename
+	}()
+
+	if err := installModelFile(tmpPath, modelPath); err != nil {
+		t.Fatalf("installModelFile: %v", err)
+	}
+	if renameCalls != 2 {
+		t.Fatalf("rename calls = %d want 2", renameCalls)
+	}
+	data, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatalf("read installed model: %v", err)
+	}
+	if string(data) != "GGUF-data" {
+		t.Fatalf("installed model = %q", data)
+	}
+	if _, err := os.Stat(tmpPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tmp file stat err = %v, want not exist", err)
+	}
+}
+
 func TestEnsureModelReportsDownloadProgress(t *testing.T) {
 	body := "GGUF-data"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

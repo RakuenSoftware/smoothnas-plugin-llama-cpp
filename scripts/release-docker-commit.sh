@@ -10,6 +10,7 @@ runtime_base="${LLAMA_RUNTIME_BASE:?LLAMA_RUNTIME_BASE is required}"
 llama_repo="${LLAMA_REPO:-https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git}"
 llama_ref="${LLAMA_REF:-24cabf4d08d460cfb6e73fa308a15b34e2b04600}"
 llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.tar.gz}"
+llama_source_dir="${LLAMA_SOURCE_DIR:-}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 build_jobs="${BUILD_JOBS:-}"
 image_build_mode="${LLAMA_IMAGE_BUILD_MODE:-docker}"
@@ -102,6 +103,10 @@ ensure_cxx_toolchain() {
   cc="$(command -v gcc-14 || command -v gcc || true)"
   cxx="$(command -v g++-14 || command -v g++ || true)"
   if [[ -z "$cc" || -z "$cxx" ]]; then
+    if [[ "$require_preinstalled_deps" == "true" ]]; then
+      echo "gcc/g++ are missing from the runner image; refusing runtime package install" >&2
+      return 1
+    fi
     apt_get update
     apt_get install -y build-essential g++
     cc="$(command -v gcc-14 || command -v gcc || true)"
@@ -114,6 +119,10 @@ ensure_cxx_toolchain() {
 
   cc1plus="$("$cxx" -print-prog-name=cc1plus)"
   if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
+    if [[ "$require_preinstalled_deps" == "true" ]]; then
+      echo "cc1plus is missing from the runner image; refusing runtime package install" >&2
+      return 1
+    fi
     major="$("$cxx" -dumpversion | cut -d. -f1)"
     apt_get update
     apt_get install --reinstall -y "g++" "g++-${major}" "g++-${major}-x86-64-linux-gnu" || apt_get install --reinstall -y g++
@@ -151,13 +160,64 @@ packages_installed() {
   done
 }
 
-build_llama() {
+resolve_llama_source_dir() {
+  local candidate
+  if [[ -n "$llama_source_dir" ]]; then
+    if [[ -f "$llama_source_dir/CMakeLists.txt" ]]; then
+      printf '%s\n' "$llama_source_dir"
+      return
+    fi
+    echo "LLAMA_SOURCE_DIR=$llama_source_dir does not look like a llama.cpp source tree" >&2
+    return 1
+  fi
+
+  for candidate in \
+    /opt/atomic-llama-cpp-turboquant \
+    /opt/smoothnas/atomic-llama-cpp-turboquant \
+    /opt/llama.cpp \
+    /opt/smoothnas/llama.cpp; do
+    if [[ -f "$candidate/CMakeLists.txt" ]]; then
+      printf '%s\n' "$candidate"
+      return
+    fi
+  done
+
+  echo "no baked llama.cpp source tree found; set LLAMA_SOURCE_DIR on the runner image" >&2
+  return 1
+}
+
+stage_llama_source() {
   mkdir -p "$src"
+
+  if [[ "$require_preinstalled_deps" == "true" ]]; then
+    local baked_source
+    baked_source="$(resolve_llama_source_dir)"
+    echo "using baked llama.cpp source: $baked_source"
+    if [[ -d "$baked_source/.git" ]] && command -v git >/dev/null 2>&1; then
+      local baked_ref
+      baked_ref="$(git -C "$baked_source" rev-parse HEAD)"
+      if [[ "$baked_ref" != "$llama_ref" ]]; then
+        echo "baked llama.cpp source is at $baked_ref, expected $llama_ref" >&2
+        return 1
+      fi
+    fi
+    cp -a "$baked_source" "$src/llama.cpp"
+    rm -rf "$src/llama.cpp/build"
+    return
+  fi
+
   git clone --depth 1 "$llama_repo" "$src/llama.cpp"
   (
     cd "$src/llama.cpp"
     git fetch --depth 1 origin "$llama_ref"
     git checkout --detach "$llama_ref"
+  )
+}
+
+build_llama() {
+  stage_llama_source
+  (
+    cd "$src/llama.cpp"
 
     cmake_args=(
       -S .
