@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.7.42
+  version: 0.7.43
   description: >
     llama.cpp inference server, CPU only, with Gemma4 MTP and
 
@@ -205,7 +205,9 @@ config:
     min: '0'
     max: '1'
     step: '0.01'
-    description: Speculative decoding split probability for compatible non-server speculative runtimes; ignored by llama-server.
+    description: >-
+      Speculative decoding split probability for compatible non-server
+      speculative runtimes; ignored by llama-server.
   - key: SPEC_DRAFT_CACHE_TYPE_K
     type: select
     label: Draft K cache type
