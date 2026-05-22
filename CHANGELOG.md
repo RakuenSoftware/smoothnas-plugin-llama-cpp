@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.42](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.41...v0.7.42) (2026-05-22)
+
+
+### Bug Fixes
+
+* align speculative flags with atomic nextn ([2a95dc4](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/2a95dc46c2b4ecede1cfe11c7100e797219b8495))
+
 ## [0.7.41](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.40...v0.7.41) (2026-05-22)
 
 
