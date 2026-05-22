@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.35](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.34...v0.7.35) (2026-05-22)
+
+
+### Bug Fixes
+
+* stabilize offline native release builds ([#143](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/143)) ([a4f32b9](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/a4f32b95c0c037779cb1134e12fd479f82daa460))
+* verify baked llama source ref ([#145](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/145)) ([e835b53](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/e835b5386a62628538abd3042a8e85e3ce755bf7))
+
 ## [0.7.34](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.33...v0.7.34) (2026-05-22)
 
 
