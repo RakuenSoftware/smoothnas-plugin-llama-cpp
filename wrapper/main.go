@@ -905,7 +905,6 @@ func speculativeArgs(getenv envGetter) []string {
 	}
 	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--draft-min")
 	appendIfSet("SPEC_DRAFT_P_MIN", "--draft-p-min")
-	appendIfSet("SPEC_DRAFT_P_SPLIT", "--draft-p-split")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_K", "--cache-type-k-draft")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_V", "--cache-type-v-draft")
 	appendIfSet("SPEC_DRAFT_GPU_LAYERS", "--n-gpu-layers-draft")

@@ -1002,6 +1002,7 @@ func TestBuildLlamaArgs_QwenNextNUsesBuiltInDraftHeads(t *testing.T) {
 		"SPECULATIVE_MODE":        "nextn",
 		"SPEC_DRAFT_MODEL_PATH":   "/models/qwen.gguf",
 		"SPEC_DRAFT_N_MAX":        "3",
+		"SPEC_DRAFT_P_SPLIT":      "0.10",
 		"SPEC_DRAFT_CACHE_TYPE_K": "turbo3",
 		"SPEC_DRAFT_CACHE_TYPE_V": "turbo3",
 	}
