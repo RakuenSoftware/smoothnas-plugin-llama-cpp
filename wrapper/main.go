@@ -46,7 +46,8 @@
 //	                             starting llama-server.
 //
 //	MODEL_PATH                  Private in-container model destination.
-//	                             Default: /models/model.gguf.
+//	                             Default: URL-derived path under /models,
+//	                             e.g. /models/Qwen3.6-27B-Q5.gguf.
 //
 //	SPEC_DRAFT_MODEL_URL        Optional draft/MTP GGUF download URL. When set,
 //	                             the wrapper downloads this into
@@ -79,7 +80,9 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -142,6 +145,17 @@ func main() {
 			state.setError(err)
 			waitForServerExit(ctx, srv, serverDone)
 			return
+		}
+	}
+	if strings.TrimSpace(os.Getenv("SPECULATIVE_MODE")) == "nextn" {
+		draftModelPath := strings.TrimSpace(os.Getenv("SPEC_DRAFT_MODEL_PATH"))
+		if draftModelPath == "" || draftModelPath == defaultModelPath {
+			if err := os.Setenv("SPEC_DRAFT_MODEL_PATH", modelPath); err != nil {
+				log.Printf("set SPEC_DRAFT_MODEL_PATH: %v", err)
+				state.setError(err)
+				waitForServerExit(ctx, srv, serverDone)
+				return
+			}
 		}
 	}
 	state.setPhase("Starting llama.cpp", "Configured GGUF files are ready. Starting llama.cpp server.", 0, 0)
@@ -487,9 +501,11 @@ func envOr(k, def string) string {
 type envGetter func(string) string
 type progressFunc func(written, total int64)
 
-const (
-	defaultModelPath      = "/models/model.gguf"
-	defaultDraftModelPath = "/models/mtp-head.gguf"
+const defaultDraftModelPath = "/models/mtp-head.gguf"
+
+var (
+	defaultModelPath = "/models/model.gguf"
+	defaultModelDir  = "/models"
 )
 
 func ensureModel(ctx context.Context, getenv envGetter, client *http.Client) (string, error) {
@@ -502,9 +518,6 @@ func ensureModelWithProgress(ctx context.Context, getenv envGetter, client *http
 		return "", errors.New("MODEL_URL is empty; configure a GGUF download URL")
 	}
 	modelPath := strings.TrimSpace(getenv("MODEL_PATH"))
-	if modelPath == "" {
-		modelPath = defaultModelPath
-	}
 	return ensureModelAtPathWithProgress(ctx, client, rawURL, modelPath, "MODEL_URL", "MODEL_PATH", progress)
 }
 
@@ -527,6 +540,11 @@ func ensureModelAtPathWithProgress(ctx context.Context, client *http.Client, raw
 	}
 	cacheKey := modelCacheKey(downloadURL)
 
+	implicitModelPath := false
+	if modelPath == "" {
+		implicitModelPath = true
+		modelPath = defaultModelPathForURL(downloadURL)
+	}
 	if !filepath.IsAbs(modelPath) {
 		return "", fmt.Errorf("%s must be absolute", pathEnvKey)
 	}
@@ -539,6 +557,9 @@ func ensureModelAtPathWithProgress(ctx context.Context, client *http.Client, raw
 
 	if client == nil {
 		client = http.DefaultClient
+	}
+	if implicitModelPath && modelPath != defaultModelPath && migrateLegacyDefaultModel(ctx, client, modelPath, downloadURL, cacheKey) {
+		return modelPath, nil
 	}
 	if modelMarkerEmpty(markerPath) && adoptCachedModel(ctx, client, modelPath, markerPath, downloadURL, cacheKey) {
 		return modelPath, nil
@@ -703,6 +724,61 @@ func modelCacheKey(downloadURL string) string {
 	return u.String()
 }
 
+func defaultModelPathForURL(downloadURL string) string {
+	u, err := url.Parse(downloadURL)
+	if err != nil || u == nil {
+		return filepath.Join(defaultModelDir, "model-"+shortCacheHash(downloadURL)+".gguf")
+	}
+	name := strings.TrimSpace(pathBaseUnescaped(u.Path))
+	if name == "" || name == "." || name == "/" {
+		name = "model-" + shortCacheHash(modelCacheKey(downloadURL)) + ".gguf"
+	}
+	name = sanitizeModelFilename(name)
+	if !strings.HasSuffix(strings.ToLower(name), ".gguf") {
+		name += "-" + shortCacheHash(modelCacheKey(downloadURL)) + ".gguf"
+	}
+	return filepath.Join(defaultModelDir, name)
+}
+
+func pathBaseUnescaped(p string) string {
+	base := filepath.Base(p)
+	if unescaped, err := url.PathUnescape(base); err == nil {
+		return unescaped
+	}
+	return base
+}
+
+func sanitizeModelFilename(name string) string {
+	var b strings.Builder
+	b.Grow(len(name))
+	lastUnderscore := false
+	for _, r := range name {
+		allowed := r == '.' || r == '-' || r == '_' ||
+			(r >= '0' && r <= '9') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= 'a' && r <= 'z')
+		if allowed {
+			b.WriteRune(r)
+			lastUnderscore = false
+			continue
+		}
+		if !lastUnderscore {
+			b.WriteByte('_')
+			lastUnderscore = true
+		}
+	}
+	out := strings.Trim(b.String(), "._-")
+	if out == "" {
+		return "model-" + shortCacheHash(name) + ".gguf"
+	}
+	return out
+}
+
+func shortCacheHash(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
 func isVolatileModelURLParam(key string) bool {
 	k := strings.ToLower(key)
 	return k == "download" ||
@@ -776,6 +852,36 @@ func adoptCachedModel(ctx context.Context, client *http.Client, modelPath, marke
 		return true
 	}
 	log.Printf("using cached model %s after matching remote size", modelPath)
+	return true
+}
+
+func migrateLegacyDefaultModel(ctx context.Context, client *http.Client, modelPath, downloadURL, cacheKey string) bool {
+	legacyMarkerPath := defaultModelPath + ".url"
+	legacyReady := modelReady(defaultModelPath, legacyMarkerPath, cacheKey, downloadURL)
+	if !legacyReady {
+		if !modelMarkerEmpty(legacyMarkerPath) {
+			return false
+		}
+		legacyReady = adoptCachedModel(ctx, client, defaultModelPath, legacyMarkerPath, downloadURL, cacheKey)
+	}
+	if !legacyReady {
+		return false
+	}
+	if err := os.MkdirAll(filepath.Dir(modelPath), 0o750); err != nil {
+		log.Printf("migrate cached model: create model directory: %v", err)
+		return false
+	}
+	if err := installModelFile(defaultModelPath, modelPath); err != nil {
+		log.Printf("migrate cached model %s to %s: %v", defaultModelPath, modelPath, err)
+		return false
+	}
+	if err := os.WriteFile(modelPath+".url", []byte(cacheKey+"\n"), 0o640); err != nil {
+		log.Printf("migrate cached model: write URL marker: %v", err)
+	}
+	if err := os.Remove(legacyMarkerPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Printf("migrate cached model: remove legacy marker: %v", err)
+	}
+	log.Printf("migrated cached model %s to %s", defaultModelPath, modelPath)
 	return true
 }
 

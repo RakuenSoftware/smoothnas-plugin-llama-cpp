@@ -63,8 +63,8 @@ config:
     default: ''
     description: |
       HTTP(S) URL for the GGUF model this one-model container should run.
-      On start, the wrapper downloads this URL into /models/model.gguf
-      inside the container, replacing the prior model when the URL changes.
+      On start, the wrapper caches this URL under /models using the GGUF filename
+      inside the container, leaving other cached GGUFs in place when the URL changes.
   - key: LLAMA_ARG_TEMP
     type: number
     label: Temperature
@@ -174,7 +174,7 @@ config:
     description: >-
       Gemma4 assistant GGUF path inside the container. With SPECULATIVE_MODE=mtp
       this is passed as --mtp-head. With SPECULATIVE_MODE=nextn, set this to
-      /models/model.gguf for combined Qwen3.6 MTP GGUFs.
+      the cached target model path for combined Qwen3.6 MTP GGUFs.
   - key: SPEC_DRAFT_MODEL_URL
     type: string
     label: MTP head download URL
