@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.34](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.33...v0.7.34) (2026-05-22)
+
+
+### Bug Fixes
+
+* require baked tools for gpu releases ([#142](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/142)) ([4ddb195](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/4ddb195cfc04e592a3cbe8c014c07558eafd2412))
+
 ## [0.7.33](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.32...v0.7.33) (2026-05-21)
 
 
