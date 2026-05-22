@@ -444,6 +444,112 @@ func TestEnsureModelDownloadsAndCaches(t *testing.T) {
 	}
 }
 
+func TestEnsureModelDefaultPathUsesURLFilename(t *testing.T) {
+	var hits int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits++
+		_, _ = io.WriteString(w, "GGUF-q5")
+	}))
+	defer srv.Close()
+
+	restoreDefaultModelDir(t, t.TempDir())
+	env := map[string]string{
+		"MODEL_URL": srv.URL + "/Qwen3.6-27B-UDT-Q5_K_XL_MTP.gguf?download=true",
+	}
+	got, err := ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	if filepath.Base(got) != "Qwen3.6-27B-UDT-Q5_K_XL_MTP.gguf" {
+		t.Fatalf("model path = %q want URL filename", got)
+	}
+
+	got, err = ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel cached: %v", err)
+	}
+	if filepath.Base(got) != "Qwen3.6-27B-UDT-Q5_K_XL_MTP.gguf" {
+		t.Fatalf("cached model path = %q want URL filename", got)
+	}
+	if hits != 1 {
+		t.Fatalf("hits = %d want 1", hits)
+	}
+}
+
+func TestEnsureModelKeepsDifferentDefaultURLFilenames(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "GGUF-"+strings.TrimPrefix(r.URL.Path, "/"))
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	restoreDefaultModelDir(t, dir)
+	env := map[string]string{"MODEL_URL": srv.URL + "/q4.gguf"}
+	q4, err := ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel q4: %v", err)
+	}
+	env["MODEL_URL"] = srv.URL + "/q5.gguf"
+	q5, err := ensureModel(context.Background(), mapEnv(env), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel q5: %v", err)
+	}
+	if q4 == q5 {
+		t.Fatalf("q4 path and q5 path both %q", q4)
+	}
+	for _, path := range []string{q4, q5} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("stat %s: %v", path, err)
+		}
+	}
+}
+
+func TestEnsureModelMigratesLegacyDefaultModel(t *testing.T) {
+	var gets int
+	body := "GGUF-legacy"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
+		case http.MethodGet:
+			gets++
+			_, _ = io.WriteString(w, body)
+		default:
+			http.Error(w, "unexpected method", http.StatusMethodNotAllowed)
+		}
+	}))
+	defer srv.Close()
+
+	dir := t.TempDir()
+	restoreDefaultModelDir(t, dir)
+	legacyPath := filepath.Join(dir, "model.gguf")
+	restoreDefaultModelPath(t, legacyPath)
+	if err := os.WriteFile(legacyPath, []byte(body), 0o640); err != nil {
+		t.Fatalf("write legacy model: %v", err)
+	}
+	if err := os.WriteFile(legacyPath+".url", []byte(srv.URL+"/q5.gguf\n"), 0o640); err != nil {
+		t.Fatalf("write legacy marker: %v", err)
+	}
+
+	got, err := ensureModel(context.Background(), mapEnv(map[string]string{"MODEL_URL": srv.URL + "/q5.gguf"}), srv.Client())
+	if err != nil {
+		t.Fatalf("ensureModel: %v", err)
+	}
+	want := filepath.Join(dir, "q5.gguf")
+	if got != want {
+		t.Fatalf("model path = %q want %q", got, want)
+	}
+	if gets != 0 {
+		t.Fatalf("gets = %d want 0", gets)
+	}
+	if _, err := os.Stat(legacyPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("legacy stat err = %v want not exist", err)
+	}
+	if data, err := os.ReadFile(want); err != nil || string(data) != body {
+		t.Fatalf("migrated data = %q err=%v want %q", data, err, body)
+	}
+}
+
 func TestInstallModelFileCopiesAcrossDevices(t *testing.T) {
 	dir := t.TempDir()
 	tmpPath := filepath.Join(dir, ".model.download")
@@ -1025,6 +1131,24 @@ func mapEnv(values map[string]string) envGetter {
 	return func(key string) string {
 		return values[key]
 	}
+}
+
+func restoreDefaultModelDir(t *testing.T, value string) {
+	t.Helper()
+	old := defaultModelDir
+	defaultModelDir = value
+	t.Cleanup(func() {
+		defaultModelDir = old
+	})
+}
+
+func restoreDefaultModelPath(t *testing.T, value string) {
+	t.Helper()
+	old := defaultModelPath
+	defaultModelPath = value
+	t.Cleanup(func() {
+		defaultModelPath = old
+	})
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
