@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.38](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.37...v0.7.38) (2026-05-22)
+
+
+### Bug Fixes
+
+* package release images with crane ([f9bd9fa](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/f9bd9fa9911a0e3ac1ad9cee88d7b894a0b5ad8a))
+
 ## [0.7.37](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.36...v0.7.37) (2026-05-22)
 
 
