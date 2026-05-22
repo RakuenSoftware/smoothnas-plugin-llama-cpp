@@ -3,11 +3,11 @@ name: release
 # Builds + publishes plugin variants on tag push.
 # Tag format is plain semver: v0.1.0, v0.1.1, v1.0.0-rc1, etc.
 #
-# Each variant is built with the local Docker-compatible daemon, saved as an
-# image archive, and pushed to GHCR with crane. The pushed-image digest is
-# spliced into the matching manifest's artifact.image before the manifests are
-# attached to the GitHub release. Operators downloading the manifests get a
-# digest-pinned image reference, not a moving tag.
+# Each variant is built natively from the baked runner toolchain/source, staged
+# into a scratch-style rootfs, and pushed to GHCR with crane. The pushed-image
+# digest is spliced into the matching manifest's artifact.image before the
+# manifests are attached to the GitHub release. Operators downloading the
+# manifests get a digest-pinned image reference, not a moving tag.
 
 on:
   push:
@@ -75,7 +75,6 @@ jobs:
           set -euo pipefail
           go version
           crane version
-          docker --version
           if [ -n "${LLAMA_SOURCE_DIR:-}" ] && [ -f "$LLAMA_SOURCE_DIR/CMakeLists.txt" ]; then
             echo "using LLAMA_SOURCE_DIR=$LLAMA_SOURCE_DIR"
           elif [ -f /opt/atomic-llama-cpp-turboquant/CMakeLists.txt ]; then
@@ -122,15 +121,12 @@ jobs:
           )
           REF="$ref" \
             BUILD_JOBS="$build_jobs" \
-            LLAMA_IMAGE_BUILD_MODE="native" \
+            LLAMA_IMAGE_BUILD_MODE="crane" \
             LLAMA_REQUIRE_PREINSTALLED_DEPS="true" \
             LLAMA_BACKEND="${{ matrix.variant.backend }}" \
             LLAMA_BUILD_BASE="${{ matrix.variant.build_base }}" \
             LLAMA_RUNTIME_BASE="${{ matrix.variant.runtime_base }}" \
             ./scripts/release-docker-commit.sh
-          archive="image-${{ matrix.variant.name }}.tar"
-          docker save "$ref" -o "$archive"
-          crane push "$archive" "$ref"
           digest="$(crane digest "$ref")"
           if [ -z "$digest" ]; then
             echo "crane digest did not return an image digest" >&2

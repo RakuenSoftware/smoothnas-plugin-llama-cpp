@@ -13,7 +13,7 @@ llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.
 llama_source_dir="${LLAMA_SOURCE_DIR:-}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 build_jobs="${BUILD_JOBS:-}"
-image_build_mode="${LLAMA_IMAGE_BUILD_MODE:-docker}"
+image_build_mode="${LLAMA_IMAGE_BUILD_MODE:-crane}"
 require_preinstalled_deps="${LLAMA_REQUIRE_PREINSTALLED_DEPS:-false}"
 
 suffix="${GITHUB_RUN_ID:-manual}-${backend}-$$"
@@ -118,6 +118,18 @@ ensure_cxx_toolchain() {
   fi
 
   cc1plus="$("$cxx" -print-prog-name=cc1plus)"
+  if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
+    for cc1plus_dir in \
+      /usr/local/lib/gcc/x86_64-linux-gnu/14 \
+      /usr/libexec/gcc/x86_64-linux-gnu/14 \
+      /usr/lib/gcc/x86_64-linux-gnu/14; do
+      if [[ -x "$cc1plus_dir/cc1plus" ]]; then
+        export COMPILER_PATH="${cc1plus_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
+        cc1plus="$("$cxx" -print-prog-name=cc1plus)"
+        break
+      fi
+    done
+  fi
   if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
     if [[ "$require_preinstalled_deps" == "true" ]]; then
       echo "cc1plus is missing from the runner image; refusing runtime package install" >&2
@@ -337,7 +349,41 @@ stage_rootfs() {
   fi
 }
 
-commit_image() {
+commit_image_with_crane() {
+  local layer="$tmp/rootfs.tar"
+
+  command -v crane >/dev/null 2>&1 || {
+    echo "crane is required to package and push the image" >&2
+    return 1
+  }
+
+  tar \
+    --sort=name \
+    --mtime='UTC 1970-01-01' \
+    --owner=0 \
+    --group=0 \
+    --numeric-owner \
+    -cf "$layer" \
+    -C "$rootfs" \
+    .
+
+  crane append \
+    --oci-empty-base \
+    --new_layer "$layer" \
+    --new_tag "$ref"
+
+  crane mutate "$ref" \
+    --tag "$ref" \
+    --set-platform linux/amd64 \
+    --entrypoint /usr/local/bin/smoothnas-wrapper \
+    --env LLAMA_BIN=/app/llama-server \
+    --env LLAMA_PORT=8081 \
+    --env LISTEN_ADDR=:8080 \
+    --env LD_LIBRARY_PATH=/app:/usr/local/cuda/lib64:/usr/local/lib:/usr/lib/x86_64-linux-gnu \
+    --exposed-ports 8080
+}
+
+commit_image_with_docker() {
   cat > "$tmp/Dockerfile" <<'EOF'
 FROM scratch
 COPY rootfs/. /
@@ -371,7 +417,7 @@ fi
 echo "using build parallelism: $build_jobs"
 
 case "$image_build_mode" in
-  docker|native) ;;
+  crane|docker|native) ;;
   *)
     echo "unsupported LLAMA_IMAGE_BUILD_MODE=$image_build_mode" >&2
     exit 1
@@ -387,4 +433,11 @@ install_runner_deps
 ensure_cxx_toolchain
 build_llama
 stage_rootfs
-commit_image
+case "$image_build_mode" in
+  crane|native)
+    commit_image_with_crane
+    ;;
+  docker)
+    commit_image_with_docker
+    ;;
+esac
