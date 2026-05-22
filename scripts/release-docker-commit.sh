@@ -13,6 +13,7 @@ llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 build_jobs="${BUILD_JOBS:-}"
 image_build_mode="${LLAMA_IMAGE_BUILD_MODE:-docker}"
+require_preinstalled_deps="${LLAMA_REQUIRE_PREINSTALLED_DEPS:-false}"
 
 suffix="${GITHUB_RUN_ID:-manual}-${backend}-$$"
 tmp="$(mktemp -d)"
@@ -45,6 +46,14 @@ esac
 
 install_runner_deps() {
   export DEBIAN_FRONTEND=noninteractive
+  if packages_installed $build_deps $runtime_deps; then
+    echo "build dependencies already installed; skipping apt-get"
+    return
+  fi
+  if [[ "$require_preinstalled_deps" == "true" ]]; then
+    echo "required build dependencies are missing from the runner image; refusing runtime package install" >&2
+    return 1
+  fi
   if [[ "$backend" == "cuda" ]]; then
     ensure_cuda_apt_repo
   fi
@@ -60,15 +69,14 @@ ensure_cuda_apt_repo() {
 
   apt_get update
   apt_get install -y ca-certificates curl
-  local keyring="$tmp/cuda-keyring.deb"
-  curl --retry 5 --retry-delay 2 -fsSLo "$keyring" \
-    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+  local source_list="$tmp/cuda-ubuntu2404-x86_64.list"
+  printf '%s\n' 'deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/ /' > "$source_list"
   if [[ "$(id -u)" -eq 0 ]]; then
-    dpkg -i "$keyring"
+    install -D -m 0644 "$source_list" /etc/apt/sources.list.d/cuda-ubuntu2404-x86_64.list
   elif command -v sudo >/dev/null 2>&1; then
-    sudo dpkg -i "$keyring"
+    sudo install -D -m 0644 "$source_list" /etc/apt/sources.list.d/cuda-ubuntu2404-x86_64.list
   else
-    echo "dpkg requires root or sudo" >&2
+    echo "installing CUDA apt source requires root or sudo" >&2
     return 1
   fi
 }
@@ -136,6 +144,13 @@ apt_get() {
   fi
 }
 
+packages_installed() {
+  local package
+  for package in "$@"; do
+    dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q 'install ok installed' || return 1
+  done
+}
+
 build_llama() {
   mkdir -p "$src"
   git clone --depth 1 "$llama_repo" "$src/llama.cpp"
@@ -150,9 +165,13 @@ build_llama() {
       -DCMAKE_BUILD_TYPE=Release
       -DGGML_NATIVE=OFF
       -DGGML_BACKEND_DL=ON
-      -DGGML_CPU_ALL_VARIANTS=ON
       -DLLAMA_BUILD_TESTS=OFF
     )
+    if [[ "$backend" == "cpu" ]]; then
+      cmake_args+=(-DGGML_CPU_ALL_VARIANTS=ON)
+    else
+      cmake_args+=(-DGGML_CPU_ALL_VARIANTS=OFF)
+    fi
     case "$backend" in
       cuda)
         if [[ "$cuda_arch" != "default" ]]; then
