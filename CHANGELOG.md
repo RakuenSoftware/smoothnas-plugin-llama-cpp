@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.43](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.42...v0.7.43) (2026-05-22)
+
+
+### Bug Fixes
+
+* omit server-only unsupported draft split flag ([#160](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/160)) ([cc80138](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/cc8013821888ab680ac0d7972bd12e89cad7188d))
+
 ## [0.7.42](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.41...v0.7.42) (2026-05-22)
 
 
