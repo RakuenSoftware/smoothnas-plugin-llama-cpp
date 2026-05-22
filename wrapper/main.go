@@ -62,8 +62,8 @@
 //	LISTEN_ADDR                 Address the wrapper itself binds. Default:
 //	                             :8080. Matches the manifest's exposed port.
 //
-//	SPEC_DRAFT_N_MAX            Optional number of built-in MTP heads to use.
-//	                             Appended as --spec-draft-n-max.
+//	SPEC_DRAFT_N_MAX            Optional number of Qwen NextN draft tokens to use.
+//	                             Appended as --draft-max for nextn mode.
 //
 //	SPECULATIVE_MODE            llama.cpp speculative decoding mode. "none"
 //	                             disables wrapper-managed speculative flags.
@@ -894,11 +894,18 @@ func speculativeArgs(getenv envGetter) []string {
 	}
 
 	appendIfSet("SPEC_DRAFT_MODEL_PATH", "--model-draft")
-	appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--draft-max")
+	if mode == "nextn" {
+		if strings.TrimSpace(getenv("SPEC_DRAFT_N_MAX")) != "" {
+			appendIfSet("SPEC_DRAFT_N_MAX", "--draft-max")
+		} else {
+			appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--draft-max")
+		}
+	} else {
+		appendIfSet("SPEC_DRAFT_MAX_TOKENS", "--draft-max")
+	}
 	appendIfSet("SPEC_DRAFT_MIN_TOKENS", "--draft-min")
-	appendIfSet("SPEC_DRAFT_P_MIN", "--spec-draft-p-min")
-	appendIfSet("SPEC_DRAFT_P_SPLIT", "--spec-draft-p-split")
-	appendIfSet("SPEC_DRAFT_N_MAX", "--spec-draft-n-max")
+	appendIfSet("SPEC_DRAFT_P_MIN", "--draft-p-min")
+	appendIfSet("SPEC_DRAFT_P_SPLIT", "--draft-p-split")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_K", "--cache-type-k-draft")
 	appendIfSet("SPEC_DRAFT_CACHE_TYPE_V", "--cache-type-v-draft")
 	appendIfSet("SPEC_DRAFT_GPU_LAYERS", "--n-gpu-layers-draft")
