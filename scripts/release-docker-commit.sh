@@ -120,6 +120,7 @@ ensure_cxx_toolchain() {
   cc1="$("$cc" -print-prog-name=cc1)"
   if [[ "$cc1" == "cc1" || ! -x "$cc1" ]]; then
     for compiler_dir in \
+      /usr/local/bin \
       /usr/local/lib/gcc/x86_64-linux-gnu/14 \
       /usr/libexec/gcc/x86_64-linux-gnu/14 \
       /usr/lib/gcc/x86_64-linux-gnu/14; do
@@ -149,6 +150,7 @@ ensure_cxx_toolchain() {
   cc1plus="$("$cxx" -print-prog-name=cc1plus)"
   if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
     for compiler_dir in \
+      /usr/local/bin \
       /usr/local/lib/gcc/x86_64-linux-gnu/14 \
       /usr/libexec/gcc/x86_64-linux-gnu/14 \
       /usr/lib/gcc/x86_64-linux-gnu/14; do
@@ -269,6 +271,10 @@ stage_llama_source() {
 
 build_llama() {
   stage_llama_source
+  if [[ "$backend" == "cuda" ]]; then
+    patch_cuda_math_headers
+    patch_cuda_toolchain_paths
+  fi
   (
     cd "$src/llama.cpp"
 
@@ -313,6 +319,40 @@ build_llama() {
         ;;
     esac
   )
+}
+
+patch_cuda_math_headers() {
+  local cuda_math=/usr/local/cuda/targets/x86_64-linux/include/crt/math_functions.h
+  if [[ ! -f "$cuda_math" ]]; then
+    return
+  fi
+  sed -i -E \
+    -e 's/(extern __DEVICE_FUNCTIONS_DECL__ __device_builtin__ double[[:space:]]+rsqrt\(double x\));/\1 noexcept (true);/' \
+    -e 's/(extern __DEVICE_FUNCTIONS_DECL__ __device_builtin__ float[[:space:]]+rsqrtf\(float x\));/\1 noexcept (true);/' \
+    -e 's/(extern __DEVICE_FUNCTIONS_DECL__ __device_builtin__ double[[:space:]]+sinpi\(double x\));/\1 noexcept (true);/' \
+    -e 's/(extern __DEVICE_FUNCTIONS_DECL__ __device_builtin__ float[[:space:]]+sinpif\(float x\));/\1 noexcept (true);/' \
+    -e 's/(extern __DEVICE_FUNCTIONS_DECL__ __device_builtin__ double[[:space:]]+cospi\(double x\));/\1 noexcept (true);/' \
+    -e 's/(extern __DEVICE_FUNCTIONS_DECL__ __device_builtin__ float[[:space:]]+cospif\(float x\));/\1 noexcept (true);/' \
+    -e 's/__func__\(double rsqrt\(double a\)\);/__func__(double rsqrt(double a) noexcept (true));/' \
+    -e 's/__func__\(float rsqrtf\(float a\)\);/__func__(float rsqrtf(float a) noexcept (true));/' \
+    -e 's/__func__\(double sinpi\(double a\)\);/__func__(double sinpi(double a) noexcept (true));/' \
+    -e 's/__func__\(float sinpif\(float a\)\);/__func__(float sinpif(float a) noexcept (true));/' \
+    -e 's/__func__\(double cospi\(double a\)\);/__func__(double cospi(double a) noexcept (true));/' \
+    -e 's/__func__\(float cospif\(float a\)\);/__func__(float cospif(float a) noexcept (true));/' \
+    "$cuda_math"
+}
+
+patch_cuda_toolchain_paths() {
+  local cuda_profile=/usr/local/cuda/bin/nvcc.profile
+  if [[ ! -f "$cuda_profile" ]]; then
+    return
+  fi
+  if [[ -x /usr/local/bin/cicc && -f /usr/local/share/cuda-nvvm/libdevice/libdevice.10.bc ]]; then
+    sed -i -E \
+      -e 's#^CICC_PATH[[:space:]]*=.*#CICC_PATH        = /usr/local/bin#' \
+      -e 's#^NVVMIR_LIBRARY_DIR[[:space:]]*=.*#NVVMIR_LIBRARY_DIR = /usr/local/share/cuda-nvvm/libdevice#' \
+      "$cuda_profile"
+  fi
 }
 
 copy_one_lib() {
