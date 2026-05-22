@@ -12,8 +12,8 @@ FROM ${LLAMA_BUILD_BASE} AS llama-build
 
 ARG LLAMA_BACKEND=cpu
 ARG LLAMA_REPO=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git
-ARG LLAMA_REF=24cabf4d08d460cfb6e73fa308a15b34e2b04600
-ARG LLAMA_ARCHIVE_URL=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant/archive/24cabf4d08d460cfb6e73fa308a15b34e2b04600.tar.gz
+ARG LLAMA_REF=0a635dcd92ba66c75fccfef91c3e106f4668f367
+ARG LLAMA_ARCHIVE_URL=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant/archive/0a635dcd92ba66c75fccfef91c3e106f4668f367.tar.gz
 ARG CUDA_DOCKER_ARCH=default
 ARG BUILD_JOBS=
 
