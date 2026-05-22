@@ -990,7 +990,7 @@ func TestBuildLlamaArgs_LegacyDraftUsesDraftModel(t *testing.T) {
 		"--model-draft", "/models/draft.gguf",
 		"--draft-max", "4",
 		"--draft-min", "1",
-		"--spec-draft-p-min", "0.60",
+		"--draft-p-min", "0.60",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("args = %#v want %#v", got, want)
@@ -1011,7 +1011,7 @@ func TestBuildLlamaArgs_QwenNextNUsesBuiltInDraftHeads(t *testing.T) {
 		"--model", "/models/qwen.gguf",
 		"--spec-type", "nextn",
 		"--model-draft", "/models/qwen.gguf",
-		"--spec-draft-n-max", "3",
+		"--draft-max", "3",
 		"--cache-type-k-draft", "turbo3",
 		"--cache-type-v-draft", "turbo3",
 	}
