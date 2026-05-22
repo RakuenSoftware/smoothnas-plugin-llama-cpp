@@ -200,6 +200,16 @@ stage_llama_source() {
         echo "baked llama.cpp source is at $baked_ref, expected $llama_ref" >&2
         return 1
       fi
+    elif [[ -f "$baked_source/.smoothnas-llama-ref" ]]; then
+      local baked_ref
+      baked_ref="$(tr -d '[:space:]' < "$baked_source/.smoothnas-llama-ref")"
+      if [[ "$baked_ref" != "$llama_ref" ]]; then
+        echo "baked llama.cpp source marker is $baked_ref, expected $llama_ref" >&2
+        return 1
+      fi
+    else
+      echo "baked llama.cpp source must include .git metadata or .smoothnas-llama-ref" >&2
+      return 1
     fi
     cp -a "$baked_source" "$src/llama.cpp"
     rm -rf "$src/llama.cpp/build"
