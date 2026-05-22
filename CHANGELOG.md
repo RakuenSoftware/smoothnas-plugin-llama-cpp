@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.39](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.38...v0.7.39) (2026-05-22)
+
+
+### Bug Fixes
+
+* resolve c compiler frontend path ([7da9672](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/7da9672e0c174d01bdd087920049dfa506da8bf3))
+
 ## [0.7.38](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.37...v0.7.38) (2026-05-22)
 
 
