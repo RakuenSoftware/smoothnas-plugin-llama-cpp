@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.41](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.40...v0.7.41) (2026-05-22)
+
+
+### Bug Fixes
+
+* build qwen nextn turboquant llama source ([de42cfb](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/de42cfbd2404016da27c1efa5909c06113ea157c))
+
 ## [0.7.40](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.39...v0.7.40) (2026-05-22)
 
 
