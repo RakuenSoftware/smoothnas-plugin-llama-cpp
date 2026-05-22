@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.7.40
+  version: 0.7.41
   description: >
     llama.cpp inference server, CPU only, with Gemma4 MTP and
 
