@@ -98,7 +98,7 @@ parallel_jobs() {
 }
 
 ensure_cxx_toolchain() {
-  local cc cxx cc1plus cc1plus_dir major
+  local cc cxx cc1 cc1plus compiler_dir major
 
   cc="$(command -v gcc-14 || command -v gcc || true)"
   cxx="$(command -v g++-14 || command -v g++ || true)"
@@ -117,14 +117,43 @@ ensure_cxx_toolchain() {
     return 1
   fi
 
-  cc1plus="$("$cxx" -print-prog-name=cc1plus)"
-  if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
-    for cc1plus_dir in \
+  cc1="$("$cc" -print-prog-name=cc1)"
+  if [[ "$cc1" == "cc1" || ! -x "$cc1" ]]; then
+    for compiler_dir in \
       /usr/local/lib/gcc/x86_64-linux-gnu/14 \
       /usr/libexec/gcc/x86_64-linux-gnu/14 \
       /usr/lib/gcc/x86_64-linux-gnu/14; do
-      if [[ -x "$cc1plus_dir/cc1plus" ]]; then
-        export COMPILER_PATH="${cc1plus_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
+      if [[ -x "$compiler_dir/cc1" ]]; then
+        export COMPILER_PATH="${compiler_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
+        cc1="$("$cc" -print-prog-name=cc1)"
+        break
+      fi
+    done
+  fi
+  if [[ "$cc1" == "cc1" || ! -x "$cc1" ]]; then
+    if [[ "$require_preinstalled_deps" == "true" ]]; then
+      echo "cc1 is missing from the runner image; refusing runtime package install" >&2
+      return 1
+    fi
+    major="$("$cc" -dumpversion | cut -d. -f1)"
+    apt_get update
+    apt_get install --reinstall -y "gcc" "gcc-${major}" "gcc-${major}-x86-64-linux-gnu" || apt_get install --reinstall -y gcc
+    cc1="$("$cc" -print-prog-name=cc1)"
+  fi
+  if [[ "$cc1" == "cc1" || ! -x "$cc1" ]]; then
+    echo "cc1 is not available to $cc" >&2
+    "$cc" -v >&2 || true
+    return 1
+  fi
+
+  cc1plus="$("$cxx" -print-prog-name=cc1plus)"
+  if [[ "$cc1plus" == "cc1plus" || ! -x "$cc1plus" ]]; then
+    for compiler_dir in \
+      /usr/local/lib/gcc/x86_64-linux-gnu/14 \
+      /usr/libexec/gcc/x86_64-linux-gnu/14 \
+      /usr/lib/gcc/x86_64-linux-gnu/14; do
+      if [[ -x "$compiler_dir/cc1plus" ]]; then
+        export COMPILER_PATH="${compiler_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
         cc1plus="$("$cxx" -print-prog-name=cc1plus)"
         break
       fi
@@ -146,11 +175,13 @@ ensure_cxx_toolchain() {
     return 1
   fi
 
-  cc1plus_dir="$(dirname "$cc1plus")"
+  compiler_dir="$(dirname "$cc1plus")"
   export CC="$cc"
   export CXX="$cxx"
-  export COMPILER_PATH="${cc1plus_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
+  export COMPILER_PATH="${compiler_dir}${COMPILER_PATH:+:${COMPILER_PATH}}"
+  printf 'int main() { return 0; }\n' > "$tmp/c-sanity.c"
   printf 'int main() { return 0; }\n' > "$tmp/cxx-sanity.cpp"
+  "$CC" "$tmp/c-sanity.c" -o "$tmp/c-sanity"
   "$CXX" "$tmp/cxx-sanity.cpp" -o "$tmp/cxx-sanity"
 }
 
