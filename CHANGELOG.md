@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.37](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.36...v0.7.37) (2026-05-22)
+
+
+### Bug Fixes
+
+* avoid docker daemon check in release preflight
+
 ## [0.7.36](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.35...v0.7.36) (2026-05-22)
 
 
