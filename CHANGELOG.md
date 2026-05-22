@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.36](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.35...v0.7.36) (2026-05-22)
+
+
+### Bug Fixes
+
+* run wrapper release tests without cgo
+
 ## [0.7.35](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.34...v0.7.35) (2026-05-22)
 
 
