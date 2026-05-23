@@ -7,9 +7,9 @@ ref="${REF:?REF is required}"
 backend="${LLAMA_BACKEND:?LLAMA_BACKEND is required}"
 build_base="${LLAMA_BUILD_BASE:?LLAMA_BUILD_BASE is required}"
 runtime_base="${LLAMA_RUNTIME_BASE:?LLAMA_RUNTIME_BASE is required}"
-llama_repo="${LLAMA_REPO:-https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git}"
-llama_ref="${LLAMA_REF:-0a635dcd92ba66c75fccfef91c3e106f4668f367}"
-llama_archive_url="${LLAMA_ARCHIVE_URL:-${llama_repo%.git}/archive/${llama_ref}.tar.gz}"
+llama_repo="${LLAMA_REPO:-https://github.com/ggml-org/llama.cpp.git}"
+llama_ref="${LLAMA_REF:-latest}"
+llama_archive_url="${LLAMA_ARCHIVE_URL:-}"
 llama_source_dir="${LLAMA_SOURCE_DIR:-}"
 cuda_arch="${CUDA_DOCKER_ARCH:-default}"
 build_jobs="${BUILD_JOBS:-}"
@@ -205,6 +205,10 @@ packages_installed() {
   done
 }
 
+resolve_latest_llama_ref() {
+  curl -fsSIL -o /dev/null -w '%{url_effective}' "${llama_repo%.git}/releases/latest" | sed 's#.*/tag/##'
+}
+
 resolve_llama_source_dir() {
   local candidate
   if [[ -n "$llama_source_dir" ]]; then
@@ -217,8 +221,6 @@ resolve_llama_source_dir() {
   fi
 
   for candidate in \
-    /opt/atomic-llama-cpp-turboquant \
-    /opt/smoothnas/atomic-llama-cpp-turboquant \
     /opt/llama.cpp \
     /opt/smoothnas/llama.cpp; do
     if [[ -f "$candidate/CMakeLists.txt" ]]; then
@@ -241,14 +243,14 @@ stage_llama_source() {
     if [[ -d "$baked_source/.git" ]] && command -v git >/dev/null 2>&1; then
       local baked_ref
       baked_ref="$(git -C "$baked_source" rev-parse HEAD)"
-      if [[ "$baked_ref" != "$llama_ref" ]]; then
+      if [[ "$llama_ref" != "latest" && "$baked_ref" != "$llama_ref" ]]; then
         echo "baked llama.cpp source is at $baked_ref, expected $llama_ref" >&2
         return 1
       fi
     elif [[ -f "$baked_source/.smoothnas-llama-ref" ]]; then
       local baked_ref
       baked_ref="$(tr -d '[:space:]' < "$baked_source/.smoothnas-llama-ref")"
-      if [[ "$baked_ref" != "$llama_ref" ]]; then
+      if [[ "$llama_ref" != "latest" && "$baked_ref" != "$llama_ref" ]]; then
         echo "baked llama.cpp source marker is $baked_ref, expected $llama_ref" >&2
         return 1
       fi
@@ -264,8 +266,12 @@ stage_llama_source() {
   git clone --depth 1 "$llama_repo" "$src/llama.cpp"
   (
     cd "$src/llama.cpp"
-    git fetch --depth 1 origin "$llama_ref"
-    git checkout --detach "$llama_ref"
+    checkout_ref="$llama_ref"
+    if [[ "$checkout_ref" == "latest" ]]; then
+      checkout_ref="$(resolve_latest_llama_ref)"
+    fi
+    git fetch --depth 1 origin "$checkout_ref"
+    git checkout --detach "$checkout_ref"
   )
 }
 
