@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.44...v0.8.0) (2026-05-23)
+
+
+### Features
+
+* build upstream llama.cpp releases ([#164](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/164)) ([ad9322e](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/ad9322e72cc9ef816ad232f62f1b5cdcda9016c4))
+
 ## [0.7.44](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.43...v0.7.44) (2026-05-22)
 
 

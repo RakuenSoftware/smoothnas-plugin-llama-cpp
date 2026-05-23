@@ -2,9 +2,10 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.7.44
+  version: 0.8.0
   description: >
-    llama.cpp inference server, CPU only, for quick experiments before selecting a GPU variant.
+    llama.cpp inference server, CPU only, for quick experiments before selecting
+    a GPU variant.
   vendor: smoothnas
   homepage: https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp
 artifact:
@@ -104,8 +105,7 @@ config:
       - value: q8_0
       - value: q5_0
       - value: q4_0
-    description: >-
-      KV cache K quantization.
+    description: KV cache K quantization.
   - key: LLAMA_ARG_CACHE_TYPE_V
     type: select
     label: V cache type
@@ -114,8 +114,7 @@ config:
       - value: q8_0
       - value: q5_0
       - value: q4_0
-    description: >-
-      KV cache V quantization.
+    description: KV cache V quantization.
   - key: LLAMA_ARG_REASONING_FORMAT
     type: select
     label: Reasoning output format
