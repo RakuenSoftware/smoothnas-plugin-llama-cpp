@@ -77,14 +77,10 @@ jobs:
           crane version
           if [ -n "${LLAMA_SOURCE_DIR:-}" ] && [ -f "$LLAMA_SOURCE_DIR/CMakeLists.txt" ]; then
             echo "using LLAMA_SOURCE_DIR=$LLAMA_SOURCE_DIR"
-          elif [ -f /opt/atomic-llama-cpp-turboquant/CMakeLists.txt ]; then
-            echo "using /opt/atomic-llama-cpp-turboquant"
-          elif [ -f /opt/smoothnas/atomic-llama-cpp-turboquant/CMakeLists.txt ]; then
-            echo "using /opt/smoothnas/atomic-llama-cpp-turboquant"
           elif [ -f /opt/llama.cpp/CMakeLists.txt ]; then
-            echo "using /opt/llama.cpp"
+            echo "using /opt/llama.cpp ($(cat /opt/llama.cpp/.smoothnas-llama-ref 2>/dev/null || echo unknown))"
           elif [ -f /opt/smoothnas/llama.cpp/CMakeLists.txt ]; then
-            echo "using /opt/smoothnas/llama.cpp"
+            echo "using /opt/smoothnas/llama.cpp ($(cat /opt/smoothnas/llama.cpp/.smoothnas-llama-ref 2>/dev/null || echo unknown))"
           else
             echo "no baked llama.cpp source tree found; set LLAMA_SOURCE_DIR on the runner image" >&2
             exit 1

@@ -1,8 +1,7 @@
 # SmoothNAS plugin: llama.cpp with bearer-auth wrapper.
 #
 # The final image carries a SmoothNAS auth wrapper plus a llama-server
-# built from the AtomicBot TurboQuant/MTP fork. This carries TurboQuant
-# KV cache types plus Qwen3.6 built-in MTP/NextN support.
+# built from upstream llama.cpp.
 
 ARG LLAMA_BUILD_BASE=ubuntu:24.04
 ARG LLAMA_RUNTIME_BASE=ubuntu:24.04
@@ -11,9 +10,9 @@ ARG LLAMA_RUNTIME_BASE=ubuntu:24.04
 FROM ${LLAMA_BUILD_BASE} AS llama-build
 
 ARG LLAMA_BACKEND=cpu
-ARG LLAMA_REPO=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant.git
-ARG LLAMA_REF=0a635dcd92ba66c75fccfef91c3e106f4668f367
-ARG LLAMA_ARCHIVE_URL=https://github.com/AtomicBot-ai/atomic-llama-cpp-turboquant/archive/0a635dcd92ba66c75fccfef91c3e106f4668f367.tar.gz
+ARG LLAMA_REPO=https://github.com/ggml-org/llama.cpp
+ARG LLAMA_REF=latest
+ARG LLAMA_ARCHIVE_URL=
 ARG CUDA_DOCKER_ARCH=default
 ARG BUILD_JOBS=
 
@@ -78,8 +77,17 @@ RUN if [[ "${LLAMA_BACKEND}" == "cuda" ]]; then \
       test -x /usr/local/cuda/nvvm/bin/cicc; \
     fi
 
-RUN mkdir -p /src/llama.cpp && \
-    curl -fsSL -o /var/tmp/llama-cpp.tar.gz "${LLAMA_ARCHIVE_URL}" && \
+RUN set -eux; \
+    mkdir -p /src/llama.cpp; \
+    archive_url="${LLAMA_ARCHIVE_URL}"; \
+    if [[ -z "$archive_url" ]]; then \
+      resolved_ref="${LLAMA_REF}"; \
+      if [[ "$resolved_ref" == "latest" ]]; then \
+        resolved_ref="$(curl -fsSIL -o /dev/null -w '%{url_effective}' "${LLAMA_REPO%.git}/releases/latest" | sed 's#.*/tag/##')"; \
+      fi; \
+      archive_url="${LLAMA_REPO%.git}/archive/${resolved_ref}.tar.gz"; \
+    fi; \
+    curl -fsSL -o /var/tmp/llama-cpp.tar.gz "$archive_url"; \
     tar -xzf /var/tmp/llama-cpp.tar.gz --strip-components=1 -C /src/llama.cpp
 WORKDIR /src/llama.cpp
 RUN set -eux; \
