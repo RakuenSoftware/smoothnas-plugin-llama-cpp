@@ -2,7 +2,7 @@ apiVersion: smoothnas.io/v1
 kind: Plugin
 metadata:
   name: llama-cpp
-  version: 0.8.0
+  version: 0.8.1
   description: |
     llama.cpp inference server with AMD Vulkan acceleration,
     upstream llama.cpp support.
