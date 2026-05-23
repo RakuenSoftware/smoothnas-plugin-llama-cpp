@@ -108,8 +108,15 @@ jobs:
           set -euo pipefail
           ref="${{ steps.image.outputs.ref }}"
           build_jobs="$(nproc)"
+          cuda_arch="default"
           case "${{ matrix.variant.name }}" in
-            cuda|vulkan) build_jobs=8 ;;
+            cuda)
+              build_jobs=8
+              # Build only modern NVIDIA GPU targets we operate. This keeps
+              # upstream llama.cpp from compiling every legacy SM target.
+              cuda_arch="89;120a"
+              ;;
+            vulkan) build_jobs=8 ;;
           esac
           (
             cd wrapper
@@ -122,6 +129,7 @@ jobs:
             LLAMA_BACKEND="${{ matrix.variant.backend }}" \
             LLAMA_BUILD_BASE="${{ matrix.variant.build_base }}" \
             LLAMA_RUNTIME_BASE="${{ matrix.variant.runtime_base }}" \
+            CUDA_DOCKER_ARCH="$cuda_arch" \
             ./scripts/release-docker-commit.sh
           digest="$(crane digest "$ref")"
           if [ -z "$digest" ]; then
