@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.8.0...v0.8.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* constrain cuda release architectures ([#166](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/issues/166)) ([8986b4c](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/commit/8986b4c39ea5efb0cc37e356d3c370d97a487cc2))
+
 ## [0.8.0](https://github.com/RakuenSoftware/smoothnas-plugin-llama-cpp/compare/v0.7.44...v0.8.0) (2026-05-23)
 
 
