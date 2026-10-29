@@ -110,3 +110,7 @@ The smoke test that actually installs the plugin against a SmoothNAS dev VM live
 ## License
 
 Add a LICENSE file at publish time. The wrapper code in this repo is original; downstream images carry their own license terms (upstream llama.cpp is MIT).
+
+## License
+
+This plugin is licensed under the [AGPL-3.0](LICENSE).
